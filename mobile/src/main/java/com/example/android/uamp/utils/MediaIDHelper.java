@@ -29,6 +29,8 @@ public class MediaIDHelper {
     public static final String MEDIA_ID_ROOT = "__ROOT__";
     public static final String MEDIA_ID_MUSICS_BY_GENRE = "__BY_GENRE__";
     public static final String MEDIA_ID_MUSICS_BY_SEARCH = "__BY_SEARCH__";
+    public static final String MEDIA_ID_MUSICS_BY_LOCAL = "__BY_LOCAL__";
+    public static final String MEDIA_ID_MUSICS_BY_VIDEOID = "__BY_VIDEOID__";
 
     private static final char CATEGORY_SEPARATOR = '/';
     private static final char LEAF_SEPARATOR = '|';
@@ -113,6 +115,14 @@ public class MediaIDHelper {
         String[] hierarchy = getHierarchy(mediaID);
         if (hierarchy.length == 2) {
             return hierarchy[1];
+        }
+        return null;
+    }
+
+    public static String extractBrowseCategoryTypeFromMediaID(@NonNull String mediaID) {
+        String[] hierarchy = getHierarchy(mediaID);
+        if (hierarchy.length >= 1) {
+            return hierarchy[0];
         }
         return null;
     }

@@ -31,12 +31,15 @@
 
     <!-- media browser listview -->
     <dimen name="media_item_height">72dp</dimen>
-    <dimen name="media_item_icon_margin_start">12dp</dimen>
-    <dimen name="media_item_text_margin_start">60dp</dimen>
+    <dimen name="media_item_icon_margin_start">5dp</dimen>
+    <dimen name="media_item_text_margin_start">10dp</dimen>
     <!-- Margins for the ShowcaseView button -->
     <dimen name="button_margin">50dp</dimen>
 
     <!-- Margins for full screen activity-->
     <dimen name="text_view_margin">16dp</dimen>
     <dimen name="end_text_margin">16dp</dimen>
+    <dimen name="x_scale_factor">100dp</dimen>
+    <dimen name="y_scale_factor">100dp</dimen>
+    <dimen name="top_fragment_margin">100dp</dimen>
 </resources>

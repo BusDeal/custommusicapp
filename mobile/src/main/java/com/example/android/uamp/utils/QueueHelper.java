@@ -24,10 +24,14 @@ import com.example.android.uamp.VoiceSearchParams;
 import com.example.android.uamp.model.MusicProvider;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
  * Utility class to help on queue related tasks.
@@ -55,10 +59,18 @@ public class QueueHelper {
 
         Iterable<MediaMetadataCompat> tracks = null;
         // This sample only supports genre and by_search category types.
-        if (categoryType.equals(MEDIA_ID_MUSICS_BY_GENRE)) {
+        if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL)) {
             tracks = musicProvider.getMusicsByGenre(categoryValue);
-        } else if (categoryType.equals(MEDIA_ID_MUSICS_BY_SEARCH)) {
-            tracks = musicProvider.searchMusicBySongTitle(categoryValue);
+
+        }else if(categoryType.equals(MEDIA_ID_MUSICS_BY_VIDEOID))  {
+            tracks = musicProvider.getYoutubeIdBasedMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        }
+
+        if(tracks == null)  {
+            List<MediaMetadataCompat> current=new ArrayList<>();
+            MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+            current.add(mediaMetadataCompat);
+            tracks=current;
         }
 
         if (tracks == null) {
@@ -66,7 +78,7 @@ public class QueueHelper {
             return null;
         }
 
-        return convertToQueue(tracks, hierarchy[0], hierarchy[1]);
+        return convertToQueue(tracks, hierarchy[0]);
     }
 
     public static List<MediaSessionCompat.QueueItem> getPlayingQueueFromSearch(String query,

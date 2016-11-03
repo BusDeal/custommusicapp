@@ -16,7 +16,9 @@
 package com.example.android.uamp.ui;
 
 import android.app.ActivityManager;
+import android.app.SearchManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,6 +29,8 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v7.widget.SearchView;
+import android.view.Menu;
 
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
@@ -204,5 +208,7 @@ public abstract class BaseActivity extends ActionBarCastActivity implements Medi
                 }
             }
         };
+
+
 
 }

@@ -17,18 +17,23 @@
 package com.example.android.uamp.playback;
 
 import android.content.res.Resources;
+import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
 import com.example.android.uamp.R;
 import com.example.android.uamp.model.MusicProvider;
+import com.example.android.uamp.model.MusicProviderSource;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.WearHelper;
+
+import java.io.IOException;
 
 /**
  * Manage the interactions among the container service, the queue manager and the actual playback.
@@ -73,9 +78,62 @@ public class PlaybackManager implements Playback.Callback {
         LogHelper.d(TAG, "handlePlayRequest: mState=" + mPlayback.getState());
         MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
         if (currentMusic != null) {
-            mServiceCallback.onPlaybackStart();
-            mPlayback.play(currentMusic);
+            MediaMetadataCompat track = mMusicProvider.getMusic(
+                    MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
+
+            //noinspection ResourceType
+            String source = track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
+            if(source != null){
+                mServiceCallback.onPlaybackStart();
+                mPlayback.play(currentMusic);
+            }else {
+                mPlayback.setState(PlaybackStateCompat.STATE_CONNECTING);
+                this.onPlaybackStatusChanged(PlaybackStateCompat.STATE_CONNECTING);
+                getAudioUrlAndPlay(currentMusic);
+            }
         }
+    }
+
+    public void getAudioUrlAndPlay(final  MediaSessionCompat.QueueItem currentMusic){
+
+            //progressDialog= ProgressDialog.show(MusicPlayerActivity.this, "", "Playing...");
+            new AsyncTask<String, Void, String>() {
+                @Override
+                protected String doInBackground(String... params) {
+                    return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
+
+                }
+
+                @Override
+                protected void onPostExecute(String source) {
+                    if(source != null){
+
+                        for(String str: source.split("&")){
+                            if(str.contains("dur=")){
+                                String duration=str.split("=")[1];
+                                Double dur=Double.parseDouble(duration);
+
+                                mMusicProvider.updateDuration(
+                                        MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),dur.longValue());
+                                break;
+                            }
+                        }
+
+                         mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
+                                 MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),source);
+                        mPlayback.play(currentMusic);
+                        mServiceCallback.onPlaybackStart();
+                        LogHelper.e(TAG, source);
+
+
+                    }else{
+                        mMediaSessionCallback.onStop();
+                        PlaybackManager.this.onError("Youtube is restricting this song to download as of now, Please try playing different song");
+                    }
+
+                }
+            }.execute();
+
     }
 
     /**
@@ -257,6 +315,10 @@ public class PlaybackManager implements Playback.Callback {
             default:
                 LogHelper.d(TAG, "Default called. Old state is ", oldState);
         }
+    }
+
+    public void updatePlayBackQueue(String mediaId) {
+        mQueueManager.updateQueue(mediaId);
     }
 
 

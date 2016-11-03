@@ -38,6 +38,9 @@ import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
+import com.example.android.uamp.utils.MediaIDHelper;
+
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
  * A class that shows the Media Queue to the user.
@@ -97,6 +100,7 @@ public class PlaybackControlsFragment extends Fragment {
                 if (metadata != null) {
                     intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         metadata.getDescription());
+                    intent.putExtra("mediaId",  MediaIDHelper.createMediaID(metadata.getDescription().getMediaId(),MEDIA_ID_MUSICS_BY_VIDEOID,metadata.getDescription().getSubtitle().toString()));
                 }
                 startActivity(intent);
             }

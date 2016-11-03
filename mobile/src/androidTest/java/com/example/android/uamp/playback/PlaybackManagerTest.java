@@ -58,6 +58,7 @@ public class PlaybackManagerTest {
             public String getString(int id) throws NotFoundException {
                 return "";
             }
+
             @NonNull
             @Override
             public String getString(int id, Object... formatArgs) throws NotFoundException {
@@ -68,7 +69,7 @@ public class PlaybackManagerTest {
 
     private void populateMusicSource(SimpleMusicProviderSource source) {
         source.add("Music 1", "Album 1", "Smith Singer", "Genre 1",
-                "https://examplemusic.com/music1.mp3", null, 1, 3, 3200);
+                "https://r2---sn-5jucgv5qc5oq-cagl.googlevideo.com/videoplayback?initcwndbps=2397500&ipbits=0&clen=18982696&ms=au&mv=m&mt=1476902653&ip=106.51.128.0&key=yt6&upn=3S1Da4pUMm8&id=o-AH70WVx-rz5qwNC7R2nDapqvxvKarwilFlChEKE2-jtl&mn=sn-5jucgv5qc5oq-cagl&mm=31&ei=88AHWLg8yc2gA-Tqs6gD&lmt=1462681748934659&gcr=in&gir=yes&requiressl=yes&keepalive=yes&source=youtube&itag=171&pl=24&dur=1091.175&mime=audio/webm&expire=1476924755&sparams=clen,dur,ei,gcr,gir,id,initcwndbps,ip,ipbits,itag,keepalive,lmt,mime,mm,mn,ms,mv,pl,requiressl,source,upn,expire&signature=B60A230BE90EA4FA358DC75D3C276AF1833FFE73.C1925F30348F2A00E3CF9AD693A939F4ABE0BB57&ratebypass=yes&title=video", null, 1, 3, 18982696);
         source.add("Music 2", "Album 1", "Joe Singer", "Genre 1",
                 "https://examplemusic.com/music2.mp3", null, 2, 3, 3300);
         source.add("Music 3", "Album 1", "John Singer", "Genre 1",
@@ -91,7 +92,7 @@ public class PlaybackManagerTest {
         final CountDownLatch latch = new CountDownLatch(5);
         final String expectedMediaId = mediaId;
 
-        QueueManager queueManager = new QueueManager(musicProvider, resources, new SimpleMetadataUpdateListener(){
+        QueueManager queueManager = new QueueManager(musicProvider, resources, new SimpleMetadataUpdateListener() {
             @Override
             public void onMetadataChanged(MediaMetadataCompat metadata) {
                 // Latch countdown 1: QueueManager will change appropriately
@@ -137,7 +138,7 @@ public class PlaybackManagerTest {
                 musicProvider, queueManager, playback);
         playbackManager.getMediaSessionCallback().onPlayFromMediaId(expectedMediaId, null);
 
-        latch.await(5, TimeUnit.SECONDS);
+        latch.await(30, TimeUnit.SECONDS);
 
         // Finally, check if the current music in queueManager is as expected
         assertEquals(expectedMediaId, queueManager.getCurrentMusic().getDescription().getMediaId());
@@ -152,7 +153,7 @@ public class PlaybackManagerTest {
         final String expectedMusicId = musicProvider.searchMusicBySongTitle("Music 3")
                 .iterator().next().getDescription().getMediaId();
 
-        QueueManager queueManager = new QueueManager(musicProvider, resources, new SimpleMetadataUpdateListener(){
+        QueueManager queueManager = new QueueManager(musicProvider, resources, new SimpleMetadataUpdateListener() {
             @Override
             public void onMetadataChanged(MediaMetadataCompat metadata) {
                 // Latch countdown 1: QueueManager will change appropriately
@@ -201,7 +202,7 @@ public class PlaybackManagerTest {
         latch.await(5, TimeUnit.SECONDS);
 
         // Finally, check if the current music in queueManager is as expected
-        assertEquals(expectedMusicId,  MediaIDHelper.extractMusicIDFromMediaID(
+        assertEquals(expectedMusicId, MediaIDHelper.extractMusicIDFromMediaID(
                 queueManager.getCurrentMusic().getDescription().getMediaId()));
     }
 

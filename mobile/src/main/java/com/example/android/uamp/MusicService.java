@@ -35,6 +35,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.media.MediaRouter;
 
 import com.example.android.uamp.model.MusicProvider;
+import com.example.android.uamp.model.RetrieveType;
 import com.example.android.uamp.playback.CastPlayback;
 import com.example.android.uamp.playback.LocalPlayback;
 import com.example.android.uamp.playback.Playback;
@@ -43,6 +44,7 @@ import com.example.android.uamp.playback.QueueManager;
 import com.example.android.uamp.ui.NowPlayingActivity;
 import com.example.android.uamp.utils.CarHelper;
 import com.example.android.uamp.utils.LogHelper;
+import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.TvHelper;
 import com.example.android.uamp.utils.WearHelper;
 import com.google.android.gms.cast.framework.CastContext;
@@ -52,6 +54,8 @@ import com.google.android.gms.cast.framework.SessionManagerListener;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
 
 /**
@@ -161,7 +165,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         // To make the app more responsive, fetch and cache catalog information now.
         // This can help improve the response time in the method
         // {@link #onLoadChildren(String, Result<List<MediaItem>>) onLoadChildren()}.
-        mMusicProvider.retrieveMediaAsync(null /* Callback */);
+        mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT,null,null /* Callback */);
 
         mPackageValidator = new PackageValidator(this);
 
@@ -318,13 +322,46 @@ public class MusicService extends MediaBrowserServiceCompat implements
     public void onLoadChildren(@NonNull final String parentMediaId,
                                @NonNull final Result<List<MediaItem>> result) {
         LogHelper.d(TAG, "OnLoadChildren: parentMediaId=", parentMediaId);
-        if (mMusicProvider.isInitialized()) {
+
+        String categoryType=MediaIDHelper.extractBrowseCategoryTypeFromMediaID(parentMediaId);
+        if(categoryType != null && MEDIA_ID_MUSICS_BY_SEARCH.equalsIgnoreCase(categoryType)){
+            final String searchQuery=MediaIDHelper.extractBrowseCategoryValueFromMediaID(parentMediaId);
+            List<MediaItem> list=mMusicProvider.getSearchList(searchQuery);
+            if(list != null){
+                result.sendResult(list);
+            }else {
+                result.detach();
+                mMusicProvider.retrieveMediaAsync(RetrieveType.SEARCH, searchQuery, new MusicProvider.Callback() {
+                    @Override
+                    public void onMusicCatalogReady(boolean success) {
+                        result.sendResult(mMusicProvider.getSearchList(searchQuery));
+                    }
+                });
+            }
+        }else if(categoryType != null && MEDIA_ID_MUSICS_BY_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)){
+            final String musicId=MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+            List<MediaItem> list=mMusicProvider.getVideosIDList(musicId);
+            if(list != null){
+                mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                result.sendResult(list);
+            }else {
+                result.detach();
+                mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
+                    @Override
+                    public void onMusicCatalogReady(boolean success) {
+                        mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                        result.sendResult(mMusicProvider.getVideosIDList(musicId));
+                    }
+                });
+            }
+        }
+        else if (mMusicProvider.isInitialized()) {
             // if music library is ready, return immediately
             result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
         } else {
             // otherwise, only return results when the music library is retrieved
             result.detach();
-            mMusicProvider.retrieveMediaAsync(new MusicProvider.Callback() {
+            mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT,"",new MusicProvider.Callback() {
                 @Override
                 public void onMusicCatalogReady(boolean success) {
                     result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));

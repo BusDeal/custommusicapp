@@ -15,6 +15,7 @@
  */
 package com.example.android.uamp.playback;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -22,6 +23,7 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -30,6 +32,7 @@ import android.text.TextUtils;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.model.MusicProviderSource;
+import com.example.android.uamp.ui.MusicPlayerActivity;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 
@@ -94,6 +97,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             }
         }
     };
+    private ProgressDialog progressDialog;
 
     public LocalPlayback(Context context, MusicProvider musicProvider) {
         this.mContext = context;
@@ -187,12 +191,16 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
                 mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
                 mMediaPlayer.setDataSource(source);
 
-                // Starts preparing the media player in the background. When
-                // it's done, it will call our OnPreparedListener (that is,
-                // the onPrepared() method on this class, since we set the
-                // listener to 'this'). Until the media player is prepared,
-                // we *cannot* call start() on it!
+                    // Starts preparing the media player in the background. When
+                    // it's done, it will call our OnPreparedListener (that is,
+                    // the onPrepared() method on this class, since we set the
+                    // listener to 'this'). Until the media player is prepared,
+                    // we *cannot* call start() on it!
                 mMediaPlayer.prepareAsync();
+
+
+
+
 
                 // If we are streaming from the internet, we want to hold a
                 // Wifi lock, which prevents the Wifi radio from going to
@@ -203,7 +211,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
                     mCallback.onPlaybackStatusChanged(mState);
                 }
 
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 LogHelper.e(TAG, ex, "Exception playing song");
                 if (mCallback != null) {
                     mCallback.onError(ex.getMessage());
@@ -324,7 +332,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             if (mPlayOnFocusGain) {
                 if (mMediaPlayer != null && !mMediaPlayer.isPlaying()) {
                     LogHelper.d(TAG,"configMediaPlayerState startMediaPlayer. seeking to ",
-                        mCurrentPosition);
+                            mCurrentPosition);
                     if (mCurrentPosition == mMediaPlayer.getCurrentPosition()) {
                         mMediaPlayer.start();
                         mState = PlaybackStateCompat.STATE_PLAYING;

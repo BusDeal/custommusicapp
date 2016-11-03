@@ -18,6 +18,7 @@ package com.example.android.uamp.playback;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.media.MediaMetadataCompat;
@@ -144,6 +145,10 @@ public class QueueManager {
                     QueueHelper.getPlayingQueue(mediaId, mMusicProvider), mediaId);
         }
         updateMetadata();
+    }
+
+    public void updateQueue(String mediaId){
+        mPlayingQueue.addAll(QueueHelper.getPlayingQueue(mediaId, mMusicProvider));
     }
 
     public MediaSessionCompat.QueueItem getCurrentMusic() {

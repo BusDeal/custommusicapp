@@ -18,9 +18,16 @@ package com.example.android.uamp.model;
 
 import android.support.v4.media.MediaMetadataCompat;
 
+import org.json.JSONException;
+
 import java.util.Iterator;
+import java.util.Map;
 
 public interface MusicProviderSource {
     String CUSTOM_METADATA_TRACK_SOURCE = "__SOURCE__";
-    Iterator<MediaMetadataCompat> iterator();
+    Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType,String... parms);
+
+    String getAudioSourceUrl(String videoId) ;
+
+    public void updateDuration(Map<String, MutableMediaMetadata> metaData);
 }

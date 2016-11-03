@@ -17,6 +17,7 @@ package com.example.android.uamp.ui;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -65,6 +66,8 @@ public class MediaBrowserFragment extends Fragment {
     private MediaFragmentListener mMediaFragmentListener;
     private View mErrorView;
     private TextView mErrorMessage;
+
+    private ProgressDialog progress;
     private final BroadcastReceiver mConnectivityChangeReceiver = new BroadcastReceiver() {
         private boolean oldOnline = false;
         @Override
@@ -114,6 +117,7 @@ public class MediaBrowserFragment extends Fragment {
             public void onChildrenLoaded(@NonNull String parentId,
                                          @NonNull List<MediaBrowserCompat.MediaItem> children) {
                 try {
+                    progress.dismiss();
                     LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
                         "  count=" + children.size());
                     checkForUserVisibleErrors(children.isEmpty());
@@ -129,6 +133,7 @@ public class MediaBrowserFragment extends Fragment {
 
             @Override
             public void onError(@NonNull String id) {
+                progress.dismiss();
                 LogHelper.e(TAG, "browse fragment subscription onError, id=" + id);
                 Toast.makeText(getActivity(), R.string.error_loading_media, Toast.LENGTH_LONG).show();
                 checkForUserVisibleErrors(true);
@@ -153,6 +158,13 @@ public class MediaBrowserFragment extends Fragment {
         mErrorMessage = (TextView) mErrorView.findViewById(R.id.error_message);
 
         mBrowserAdapter = new BrowseAdapter(getActivity());
+
+        progress = new ProgressDialog(getActivity());
+        progress.setTitle("Loading");
+        progress.setMessage("Wait while loading...");
+        progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
+        //progress.show();
+
 
         ListView listView = (ListView) rootView.findViewById(R.id.list_view);
         listView.setAdapter(mBrowserAdapter);

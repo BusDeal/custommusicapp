@@ -15,6 +15,8 @@
  */
 package com.example.android.uamp.ui;
 
+import android.app.FragmentTransaction;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -31,17 +33,20 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
+import com.example.android.uamp.utils.MediaIDHelper;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,12 +55,13 @@ import java.util.concurrent.TimeUnit;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
  * A full screen player that shows the current playing music with a background image
  * depicting the album art. The activity also has controls to seek/pause/play the audio.
  */
-public class FullScreenPlayerActivity extends ActionBarCastActivity {
+public class FullScreenPlayerActivity extends ActionBarCastActivity implements MediaBrowserFragment.MediaFragmentListener {
     private static final String TAG = LogHelper.makeLogTag(FullScreenPlayerActivity.class);
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
@@ -91,6 +97,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
 
     private ScheduledFuture<?> mScheduleFuture;
     private PlaybackStateCompat mLastPlaybackState;
+    private static final String FRAGMENT_TAG = "uamp_list_container";
 
     private final MediaControllerCompat.Callback mCallback = new MediaControllerCompat.Callback() {
         @Override
@@ -115,11 +122,37 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             LogHelper.d(TAG, "onConnected");
             try {
                 connectToSession(mMediaBrowser.getSessionToken());
+                getBrowseFragment().onConnected();
             } catch (RemoteException e) {
                 LogHelper.e(TAG, e, "could not connect media controller");
             }
         }
     };
+
+    private void navigateToBrowser(String mediaId) {
+        LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
+        MediaBrowserFragment fragment = getBrowseFragment();
+
+        if (fragment == null || !TextUtils.equals(fragment.getMediaId(), mediaId)) {
+            fragment = new MediaBrowserFragment();
+            fragment.setMediaId(mediaId);
+            FragmentTransaction transaction = getFragmentManager().beginTransaction();
+            transaction.setCustomAnimations(
+                    R.animator.slide_in_from_right, R.animator.slide_out_to_left,
+                    R.animator.slide_in_from_left, R.animator.slide_out_to_right);
+            transaction.replace(R.id.playlist, fragment, FRAGMENT_TAG);
+            // If this is not the top level media (root), we add it to the fragment back stack,
+            // so that actionbar toggle and Back will work appropriately:
+            /*if (mediaId != null) {
+                transaction.addToBackStack(null);
+            }*/
+            transaction.commit();
+        }
+    }
+
+    private MediaBrowserFragment getBrowseFragment() {
+        return (MediaBrowserFragment) getFragmentManager().findFragmentByTag(FRAGMENT_TAG);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -212,8 +245,13 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             updateFromParams(getIntent());
         }
 
+
+
+
         mMediaBrowser = new MediaBrowserCompat(this,
             new ComponentName(this, MusicService.class), mConnectionCallback, null);
+        String mediaId=getIntent().getExtras().getString("mediaId");
+        navigateToBrowser(mediaId);
     }
 
     private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {
@@ -379,11 +417,23 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
                 mPlayPause.setImageDrawable(mPlayDrawable);
                 stopSeekbarUpdate();
                 break;
+            case PlaybackStateCompat.STATE_CONNECTING:
             case PlaybackStateCompat.STATE_BUFFERING:
                 mPlayPause.setVisibility(INVISIBLE);
                 mLoading.setVisibility(VISIBLE);
                 mLine3.setText(R.string.loading);
                 stopSeekbarUpdate();
+                break;
+            case PlaybackStateCompat.STATE_ERROR:
+                mControllers.setVisibility(VISIBLE);
+                mLoading.setVisibility(INVISIBLE);
+                mPlayPause.setVisibility(VISIBLE);
+                mPlayPause.setImageDrawable(mPlayDrawable);
+                stopSeekbarUpdate();
+                mLoading.setVisibility(INVISIBLE);
+                mLine3.setText(state.getErrorMessage());
+                Toast.makeText(FullScreenPlayerActivity.this.getBaseContext(),state.getErrorMessage(),
+                        Toast.LENGTH_LONG).show();
                 break;
             default:
                 LogHelper.d(TAG, "Unhandled state ", state.getState());
@@ -410,5 +460,34 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             currentPosition += (int) timeDelta * mLastPlaybackState.getPlaybackSpeed();
         }
         mSeekbar.setProgress((int) currentPosition);
+    }
+
+    @Override
+    public void onMediaItemSelected(MediaBrowserCompat.MediaItem item) {
+
+        Intent intent = getIntent();
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        if (item != null) {
+            intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                    item.getDescription());
+            String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
+            intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, item.getDescription().getSubtitle().toString()));
+        }
+        getSupportMediaController().getTransportControls()
+                .playFromMediaId(item.getMediaId(), null);
+        finish();
+        startActivity(intent);
+
+    }
+
+    @Override
+    public void setToolbarTitle(CharSequence title) {
+
+    }
+
+    @Override
+    public MediaBrowserCompat getMediaBrowser() {
+        return mMediaBrowser;
     }
 }

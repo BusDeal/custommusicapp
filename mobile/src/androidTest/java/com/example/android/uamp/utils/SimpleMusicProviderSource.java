@@ -19,10 +19,13 @@ package com.example.android.uamp.utils;
 import android.support.v4.media.MediaMetadataCompat;
 
 import com.example.android.uamp.model.MusicProviderSource;
+import com.example.android.uamp.model.MutableMediaMetadata;
+import com.example.android.uamp.model.RetrieveType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class SimpleMusicProviderSource implements MusicProviderSource {
 
@@ -48,8 +51,17 @@ public class SimpleMusicProviderSource implements MusicProviderSource {
     }
 
     @Override
-    public Iterator<MediaMetadataCompat> iterator() {
+    public Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType, String... parms) {
         return mData.iterator();
     }
 
+    @Override
+    public String getAudioSourceUrl(String videoId) {
+        return null;
+    }
+
+    @Override
+    public void updateDuration(Map<String, MutableMediaMetadata> metaData) {
+
+    }
 }

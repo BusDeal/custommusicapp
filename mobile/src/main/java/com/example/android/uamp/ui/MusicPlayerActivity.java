@@ -17,14 +17,45 @@ package com.example.android.uamp.ui;
 
 import android.app.FragmentTransaction;
 import android.app.SearchManager;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
+import android.util.LruCache;
+import android.view.Menu;
+import android.view.View;
+import android.widget.ArrayAdapter;
 
 import com.example.android.uamp.R;
+import com.example.android.uamp.model.MusicProvider;
+import com.example.android.uamp.model.RemoteJSONSource;
 import com.example.android.uamp.utils.LogHelper;
+import com.example.android.uamp.utils.MediaIDHelper;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
 
 /**
  * Main activity for the music player.
@@ -36,7 +67,7 @@ public class MusicPlayerActivity extends BaseActivity
         implements MediaBrowserFragment.MediaFragmentListener {
 
     private static final String TAG = LogHelper.makeLogTag(MusicPlayerActivity.class);
-    private static final String SAVED_MEDIA_ID="com.example.android.uamp.MEDIA_ID";
+    private static final String SAVED_MEDIA_ID = "com.example.android.uamp.MEDIA_ID";
     private static final String FRAGMENT_TAG = "uamp_list_container";
 
     public static final String EXTRA_START_FULLSCREEN =
@@ -48,9 +79,12 @@ public class MusicPlayerActivity extends BaseActivity
      * while the {@link android.support.v4.media.session.MediaControllerCompat} is connecting.
      */
     public static final String EXTRA_CURRENT_MEDIA_DESCRIPTION =
-        "com.example.android.uamp.CURRENT_MEDIA_DESCRIPTION";
+            "com.example.android.uamp.CURRENT_MEDIA_DESCRIPTION";
 
     private Bundle mVoiceSearchParams;
+    private SearchView searchView;
+    private LruCache<String, Integer> suggestionSelected = new LruCache<>(10);
+    private LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,8 +92,8 @@ public class MusicPlayerActivity extends BaseActivity
         LogHelper.d(TAG, "Activity onCreate");
 
         setContentView(R.layout.activity_player);
-
         initializeToolbar();
+
         initializeFromParams(savedInstanceState, getIntent());
 
         // Only check if a full screen player is needed on the first time:
@@ -81,8 +115,19 @@ public class MusicPlayerActivity extends BaseActivity
     public void onMediaItemSelected(MediaBrowserCompat.MediaItem item) {
         LogHelper.d(TAG, "onMediaItemSelected, mediaId=" + item.getMediaId());
         if (item.isPlayable()) {
+            Intent intent = new Intent(MusicPlayerActivity.this, FullScreenPlayerActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+            if (item != null) {
+                intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                        item.getDescription());
+                String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
+                intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, item.getDescription().getSubtitle().toString()));
+            }
             getSupportMediaController().getTransportControls()
                     .playFromMediaId(item.getMediaId(), null);
+            startActivity(intent);
+
         } else if (item.isBrowsable()) {
             navigateToBrowser(item.getMediaId());
         } else {
@@ -102,18 +147,26 @@ public class MusicPlayerActivity extends BaseActivity
 
     @Override
     protected void onNewIntent(Intent intent) {
-        LogHelper.d(TAG, "onNewIntent, intent=" + intent);
-        initializeFromParams(null, intent);
-        startFullScreenActivityIfNeeded(intent);
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            // Handle the normal search query case
+            String query = intent.getStringExtra(SearchManager.QUERY);
+        } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+            //showResult(data);
+        } else {
+            LogHelper.d(TAG, "onNewIntent, intent=" + intent);
+            initializeFromParams(null, intent);
+            startFullScreenActivityIfNeeded(intent);
+        }
     }
+
 
     private void startFullScreenActivityIfNeeded(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_START_FULLSCREEN, false)) {
             Intent fullScreenIntent = new Intent(this, FullScreenPlayerActivity.class)
-                .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP |
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .putExtra(EXTRA_CURRENT_MEDIA_DESCRIPTION,
-                    intent.getParcelableExtra(EXTRA_CURRENT_MEDIA_DESCRIPTION));
+                    .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP |
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .putExtra(EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                            intent.getParcelableExtra(EXTRA_CURRENT_MEDIA_DESCRIPTION));
             startActivity(fullScreenIntent);
         }
     }
@@ -124,14 +177,23 @@ public class MusicPlayerActivity extends BaseActivity
         // (which contain the query details) in a parameter, so we can reuse it later, when the
         // MediaSession is connected.
         if (intent.getAction() != null
-            && intent.getAction().equals(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH)) {
+                && intent.getAction().equals(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH)) {
             mVoiceSearchParams = intent.getExtras();
             LogHelper.d(TAG, "Starting from voice search query=",
-                mVoiceSearchParams.getString(SearchManager.QUERY));
+                    mVoiceSearchParams.getString(SearchManager.QUERY));
+        } else if (intent.getAction() != null && Intent.ACTION_SEARCH.equals(getIntent().getAction())) {
+            // Handle the normal search query case
+            mVoiceSearchParams = intent.getExtras();
+            String query = getIntent().getStringExtra(SearchManager.QUERY);
+            mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
+        } else if (intent.getAction() != null && Intent.ACTION_VIEW.equals(getIntent().getAction())) {
+            //showResult(data);
         } else {
             if (savedInstanceState != null) {
                 // If there is a saved media ID, use it
                 mediaId = savedInstanceState.getString(SAVED_MEDIA_ID);
+            }else {
+                mediaId=MEDIA_ID_ROOT;
             }
         }
         navigateToBrowser(mediaId);
@@ -146,8 +208,8 @@ public class MusicPlayerActivity extends BaseActivity
             fragment.setMediaId(mediaId);
             FragmentTransaction transaction = getFragmentManager().beginTransaction();
             transaction.setCustomAnimations(
-                R.animator.slide_in_from_right, R.animator.slide_out_to_left,
-                R.animator.slide_in_from_left, R.animator.slide_out_to_right);
+                    R.animator.slide_in_from_right, R.animator.slide_out_to_left,
+                    R.animator.slide_in_from_left, R.animator.slide_out_to_right);
             transaction.replace(R.id.container, fragment, FRAGMENT_TAG);
             // If this is not the top level media (root), we add it to the fragment back stack,
             // so that actionbar toggle and Back will work appropriately:
@@ -183,4 +245,161 @@ public class MusicPlayerActivity extends BaseActivity
         }
         getBrowseFragment().onConnected();
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(final Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        SearchManager searchManager =
+                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        searchView =
+                (SearchView) menu.findItem(R.id.search).getActionView();
+        ComponentName cn = new ComponentName(this, MusicPlayerActivity.class);
+        searchView.setSearchableInfo(
+                searchManager.getSearchableInfo(cn));
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(final String query) {
+
+                if (query == null || query.isEmpty()) {
+                    Map<String, Integer> list = suggestionSelected.snapshot();
+                    List<String> items = new ArrayList<String>();
+                    for (String suggestion : list.keySet()) {
+                        items.add(suggestion);
+                    }
+                    loadSearchSuggestions(query, menu, items);
+                    return true;
+                }
+                if (query.length() < 2) {
+                    return false;
+                }
+                List<String> items = suggestionAutoText.get(query);
+                if (items != null) {
+                    loadSearchSuggestions(query, menu, items);
+                    return true;
+                }
+                new AsyncTask<String, Void, JSONArray>() {
+                    @Override
+                    protected JSONArray doInBackground(String... params) {
+                        String searchquery = query;
+                        try {
+                            searchquery = URLEncoder.encode(query, "utf-8");
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                        String url = "http://suggestqueries.google.com/complete/search?hl=en&ds=yt&client=youtube&hjson=t&cp=1&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&format=5&alt=json&q=" + searchquery;
+                        try {
+                            JSONArray jsonArray = RemoteJSONSource.fetchJSONArrayFromUrl(url);
+                            return jsonArray;
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    protected void onPostExecute(JSONArray jsonArray) {
+                        try {
+                            if (jsonArray == null) {
+                                return;
+                            }
+                            JSONArray listArray = jsonArray.getJSONArray(1);
+                            final List<String> items = new ArrayList<String>();
+                            for (int i = 0; i < listArray.length(); i++) {
+                                JSONArray data = listArray.getJSONArray(i);
+                                items.add(data.get(0).toString());
+                            }
+                            suggestionAutoText.put(query, items);
+                            loadSearchSuggestions(query, menu, items);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+
+                    }
+                }.execute();
+
+
+                return true;
+
+            }
+
+        });
+
+        searchView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if (b) {
+                    Map<String, Integer> list = suggestionSelected.snapshot();
+                    List<String> items = new ArrayList<String>();
+                    for (String suggestion : list.keySet()) {
+                        items.add(suggestion);
+                    }
+                    loadSearchSuggestions("", menu, items);
+
+                }
+
+            }
+
+
+        });
+
+
+        searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+            @Override
+            public boolean onSuggestionSelect(int position) {
+                return true;
+            }
+
+            @Override
+            public boolean onSuggestionClick(int position) {
+                String suggestion = getSuggestion(position);
+                Integer oldSuggestion = suggestionSelected.get(suggestion);
+                if (oldSuggestion == null) {
+                    suggestionSelected.put(suggestion, 1);
+                } else {
+                    suggestionSelected.put(suggestion, oldSuggestion + 1);
+                }
+                searchView.setQuery(suggestion, true);
+                Intent intent = new Intent();
+                intent.putExtra(SearchManager.QUERY, suggestion);
+                intent.setAction(Intent.ACTION_SEARCH);
+                finish();
+                startActivity(intent);
+                return true;
+            }
+        });
+
+        return true;
+    }
+
+    private String getSuggestion(int position) {
+        Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);
+        return cursor.getString(cursor.getColumnIndex("text"));
+    }
+
+    private void loadSearchSuggestions(String query, Menu menu, List<String> items) {
+
+        String[] columns = new String[]{"_id", "text"};
+        Object[] temp = new Object[]{0, "default"};
+        MatrixCursor cursor = new MatrixCursor(columns);
+        for (int i = 0; i < items.size(); i++) {
+            temp[0] = i;
+            temp[1] = items.get(i);
+            cursor.addRow(temp);
+        }
+
+        final SearchView search = (SearchView) menu.findItem(R.id.search).getActionView();
+        search.setSuggestionsAdapter(new SuggestionsAdapter(searchView, this, cursor, items));
+
+
+    }
+
+
 }

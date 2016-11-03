@@ -46,6 +46,7 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
+
         <!-- Main activity for music browsing on phone -->
         <activity
             android:name=".ui.MusicPlayerActivity"
@@ -60,6 +61,19 @@
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.default_searchable"
+                android:value=".ui.MusicPlayerActivity" />
+
+            <meta-data
+                android:name="android.app.searchable"
+                android:resource="@xml/searchable" />
         </activity>
 
         <!-- Placeholder activity for phone UI -->
@@ -165,6 +179,11 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+
+        <!--<provider
+            android:authorities="com.example.android.uamp.ui.SuggestionsProvider"
+            android:name=".ui.SuggestionsProvider" >
+        </provider>-->
 
     </application>
 

@@ -16,7 +16,7 @@
   -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
+    android:layout_width="wrap_content"
     android:orientation="horizontal"
     android:layout_height="@dimen/media_item_height">
     <ImageView
@@ -56,13 +56,19 @@
 
     </LinearLayout>
 
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        />
+
     <ImageView
         android:id="@+id/play_eq"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:tint="@color/media_item_icon_not_playing"
         android:contentDescription="@string/play_item"
-        android:layout_margin="@dimen/media_item_icon_margin_start"
+        android:gravity="right"
         android:src="@drawable/ic_play_arrow_black_36dp"/>
 
 </LinearLayout>

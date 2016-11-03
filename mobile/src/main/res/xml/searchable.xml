@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<searchable xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/app_name"
+    android:hint="@string/search_label" >
+    <!--android:searchSuggestAuthority="com.example.android.uamp.ui.SuggestionsProvider
+    android:searchSuggestIntentAction="android.intent.action.VIEW"
+    android:searchSuggestSelection=" ?";
+    android:searchSuggestIntentData="content://suggestqueries.google.com/complete/search?q=ob&amp;client=firefox"-->
+
+</searchable>
