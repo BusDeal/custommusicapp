@@ -28,6 +28,7 @@ import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaBrowserCompat.ItemCallback;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -55,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
@@ -68,6 +70,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
     private ImageView mSkipPrev;
     private ImageView mSkipNext;
+    private ImageView mDownLoad;
     private ImageView mPlayPause;
     private TextView mStart;
     private TextView mEnd;
@@ -93,11 +96,12 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     };
 
     private final ScheduledExecutorService mExecutorService =
-        Executors.newSingleThreadScheduledExecutor();
+            Executors.newSingleThreadScheduledExecutor();
 
     private ScheduledFuture<?> mScheduleFuture;
     private PlaybackStateCompat mLastPlaybackState;
     private static final String FRAGMENT_TAG = "uamp_list_container";
+    private Boolean isDownLoading = false;
 
     private final MediaControllerCompat.Callback mCallback = new MediaControllerCompat.Callback() {
         @Override
@@ -117,17 +121,17 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
     private final MediaBrowserCompat.ConnectionCallback mConnectionCallback =
             new MediaBrowserCompat.ConnectionCallback() {
-        @Override
-        public void onConnected() {
-            LogHelper.d(TAG, "onConnected");
-            try {
-                connectToSession(mMediaBrowser.getSessionToken());
-                getBrowseFragment().onConnected();
-            } catch (RemoteException e) {
-                LogHelper.e(TAG, e, "could not connect media controller");
-            }
-        }
-    };
+                @Override
+                public void onConnected() {
+                    LogHelper.d(TAG, "onConnected");
+                    try {
+                        connectToSession(mMediaBrowser.getSessionToken());
+                        getBrowseFragment().onConnected();
+                    } catch (RemoteException e) {
+                        LogHelper.e(TAG, e, "could not connect media controller");
+                    }
+                }
+            };
 
     private void navigateToBrowser(String mediaId) {
         LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
@@ -169,6 +173,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_play_arrow_white_48dp);
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mSkipNext = (ImageView) findViewById(R.id.next);
+        mDownLoad = (ImageView) findViewById(R.id.download);
         mSkipPrev = (ImageView) findViewById(R.id.prev);
         mStart = (TextView) findViewById(R.id.startText);
         mEnd = (TextView) findViewById(R.id.endText);
@@ -183,7 +188,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             @Override
             public void onClick(View v) {
                 MediaControllerCompat.TransportControls controls =
-                    getSupportMediaController().getTransportControls();
+                        getSupportMediaController().getTransportControls();
                 controls.skipToNext();
             }
         });
@@ -192,7 +197,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             @Override
             public void onClick(View v) {
                 MediaControllerCompat.TransportControls controls =
-                    getSupportMediaController().getTransportControls();
+                        getSupportMediaController().getTransportControls();
                 controls.skipToPrevious();
             }
         });
@@ -246,11 +251,40 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         }
 
 
-
-
         mMediaBrowser = new MediaBrowserCompat(this,
-            new ComponentName(this, MusicService.class), mConnectionCallback, null);
-        String mediaId=getIntent().getExtras().getString("mediaId");
+                new ComponentName(this, MusicService.class), mConnectionCallback, null);
+        final String mediaId = getIntent().getExtras().getString("mediaId");
+        mDownLoad.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (isDownLoading) {
+                    return;
+                }
+                isDownLoading = true;
+                String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MEDIA_ID_MUSICS_BY_DOWNLOAD, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
+                mMediaBrowser.getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
+                    /**
+                     * Called when the item has been returned by the browser service.
+                     *
+                     * @param item The item that was returned or null if it doesn't exist.
+                     */
+                    @Override
+                    public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
+                        isDownLoading = false;
+                    }
+
+                    /**
+                     * Called when the item doesn't exist or there was an error retrieving it.
+                     *
+                     * @param itemId The media id of the media item which could not be loaded.
+                     */
+                    @Override
+                    public void onError(@NonNull String itemId) {
+                        isDownLoading = false;
+                    }
+                });
+            }
+        });
         navigateToBrowser(mediaId);
     }
 
@@ -280,7 +314,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     private void updateFromParams(Intent intent) {
         if (intent != null) {
             MediaDescriptionCompat description = intent.getParcelableExtra(
-                MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
+                    MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
             if (description != null) {
                 updateMediaDescription(description);
             }
@@ -379,7 +413,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         LogHelper.d(TAG, "updateDuration called ");
         int duration = (int) metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
         mSeekbar.setMax(duration);
-        mEnd.setText(DateUtils.formatElapsedTime(duration/1000));
+        mEnd.setText(DateUtils.formatElapsedTime(duration / 1000));
     }
 
     private void updatePlaybackState(PlaybackStateCompat state) {
@@ -391,7 +425,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             String castName = getSupportMediaController()
                     .getExtras().getString(MusicService.EXTRA_CONNECTED_CAST);
             String line3Text = castName == null ? "" : getResources()
-                        .getString(R.string.casting_to_device, castName);
+                    .getString(R.string.casting_to_device, castName);
             mLine3.setText(line3Text);
         }
 
@@ -432,7 +466,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 stopSeekbarUpdate();
                 mLoading.setVisibility(INVISIBLE);
                 mLine3.setText(state.getErrorMessage());
-                Toast.makeText(FullScreenPlayerActivity.this.getBaseContext(),state.getErrorMessage(),
+                Toast.makeText(FullScreenPlayerActivity.this.getBaseContext(), state.getErrorMessage(),
                         Toast.LENGTH_LONG).show();
                 break;
             default:
@@ -440,9 +474,9 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         }
 
         mSkipNext.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) == 0
-            ? INVISIBLE : VISIBLE );
+                ? INVISIBLE : VISIBLE);
         mSkipPrev.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) == 0
-            ? INVISIBLE : VISIBLE );
+                ? INVISIBLE : VISIBLE);
     }
 
     private void updateProgress() {

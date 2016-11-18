@@ -31,6 +31,8 @@ public class MediaIDHelper {
     public static final String MEDIA_ID_MUSICS_BY_SEARCH = "__BY_SEARCH__";
     public static final String MEDIA_ID_MUSICS_BY_LOCAL = "__BY_LOCAL__";
     public static final String MEDIA_ID_MUSICS_BY_VIDEOID = "__BY_VIDEOID__";
+    public static final String MEDIA_ID_MUSICS_BY_DOWNLOAD = "__BY_DOWNLOAD__";
+    public static final String MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID = "__BY_DOWNLOAD__VIDEOID_";
 
     private static final char CATEGORY_SEPARATOR = '/';
     private static final char LEAF_SEPARATOR = '|';

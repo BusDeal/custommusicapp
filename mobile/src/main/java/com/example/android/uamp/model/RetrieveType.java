@@ -5,5 +5,5 @@ package com.example.android.uamp.model;
  */
 
 public enum RetrieveType {
-    DEFAULT, SEARCH, VIDEOID
+    DEFAULT, SEARCH, VIDEOID,DOWNLOAD
 }

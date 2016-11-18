@@ -39,6 +39,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
@@ -163,7 +164,7 @@ public class MediaBrowserFragment extends Fragment {
         progress.setTitle("Loading");
         progress.setMessage("Wait while loading...");
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
-        //progress.show();
+        progress.show();
 
 
         ListView listView = (ListView) rootView.findViewById(R.id.list_view);

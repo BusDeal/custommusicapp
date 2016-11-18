@@ -1,21 +1,22 @@
- /*
- * Copyright (C) 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/*
+* Copyright (C) 2014 The Android Open Source Project
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 package com.example.android.uamp;
 
+import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -26,6 +27,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.MediaBrowserServiceCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -37,6 +39,7 @@ import android.support.v7.media.MediaRouter;
 import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.model.RetrieveType;
 import com.example.android.uamp.playback.CastPlayback;
+import com.example.android.uamp.playback.DownLoadManager;
 import com.example.android.uamp.playback.LocalPlayback;
 import com.example.android.uamp.playback.Playback;
 import com.example.android.uamp.playback.PlaybackManager;
@@ -51,9 +54,14 @@ import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
 import com.google.android.gms.cast.framework.SessionManager;
 import com.google.android.gms.cast.framework.SessionManagerListener;
+
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
+import static android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
@@ -66,53 +74,52 @@ import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
  * user interfaces that need to interact with your media session, like Android Auto. You can
  * (should) also use the same service from your app's UI, which gives a seamless playback
  * experience to the user.
- *
+ * <p>
  * To implement a MediaBrowserService, you need to:
- *
+ * <p>
  * <ul>
- *
+ * <p>
  * <li> Extend {@link android.service.media.MediaBrowserService}, implementing the media browsing
- *      related methods {@link android.service.media.MediaBrowserService#onGetRoot} and
- *      {@link android.service.media.MediaBrowserService#onLoadChildren};
+ * related methods {@link android.service.media.MediaBrowserService#onGetRoot} and
+ * {@link android.service.media.MediaBrowserService#onLoadChildren};
  * <li> In onCreate, start a new {@link android.media.session.MediaSession} and notify its parent
- *      with the session's token {@link android.service.media.MediaBrowserService#setSessionToken};
- *
+ * with the session's token {@link android.service.media.MediaBrowserService#setSessionToken};
+ * <p>
  * <li> Set a callback on the
- *      {@link android.media.session.MediaSession#setCallback(android.media.session.MediaSession.Callback)}.
- *      The callback will receive all the user's actions, like play, pause, etc;
- *
+ * {@link android.media.session.MediaSession#setCallback(android.media.session.MediaSession.Callback)}.
+ * The callback will receive all the user's actions, like play, pause, etc;
+ * <p>
  * <li> Handle all the actual music playing using any method your app prefers (for example,
- *      {@link android.media.MediaPlayer})
- *
+ * {@link android.media.MediaPlayer})
+ * <p>
  * <li> Update playbackState, "now playing" metadata and queue, using MediaSession proper methods
- *      {@link android.media.session.MediaSession#setPlaybackState(android.media.session.PlaybackState)}
- *      {@link android.media.session.MediaSession#setMetadata(android.media.MediaMetadata)} and
- *      {@link android.media.session.MediaSession#setQueue(java.util.List)})
- *
+ * {@link android.media.session.MediaSession#setPlaybackState(android.media.session.PlaybackState)}
+ * {@link android.media.session.MediaSession#setMetadata(android.media.MediaMetadata)} and
+ * {@link android.media.session.MediaSession#setQueue(java.util.List)})
+ * <p>
  * <li> Declare and export the service in AndroidManifest with an intent receiver for the action
- *      android.media.browse.MediaBrowserService
- *
+ * android.media.browse.MediaBrowserService
+ * <p>
  * </ul>
- *
+ * <p>
  * To make your app compatible with Android Auto, you also need to:
- *
+ * <p>
  * <ul>
- *
+ * <p>
  * <li> Declare a meta-data tag in AndroidManifest.xml linking to a xml resource
- *      with a &lt;automotiveApp&gt; root element. For a media app, this must include
- *      an &lt;uses name="media"/&gt; element as a child.
- *      For example, in AndroidManifest.xml:
- *          &lt;meta-data android:name="com.google.android.gms.car.application"
- *              android:resource="@xml/automotive_app_desc"/&gt;
- *      And in res/values/automotive_app_desc.xml:
- *          &lt;automotiveApp&gt;
- *              &lt;uses name="media"/&gt;
- *          &lt;/automotiveApp&gt;
- *
+ * with a &lt;automotiveApp&gt; root element. For a media app, this must include
+ * an &lt;uses name="media"/&gt; element as a child.
+ * For example, in AndroidManifest.xml:
+ * &lt;meta-data android:name="com.google.android.gms.car.application"
+ * android:resource="@xml/automotive_app_desc"/&gt;
+ * And in res/values/automotive_app_desc.xml:
+ * &lt;automotiveApp&gt;
+ * &lt;uses name="media"/&gt;
+ * &lt;/automotiveApp&gt;
+ * <p>
  * </ul>
-
- * @see <a href="README.md">README.md</a> for more details.
  *
+ * @see <a href="README.md">README.md</a> for more details.
  */
 public class MusicService extends MediaBrowserServiceCompat implements
         PlaybackManager.PlaybackServiceCallback {
@@ -150,6 +157,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
     private boolean mIsConnectedToCar;
     private BroadcastReceiver mCarConnectionReceiver;
+    private DownLoadManager downloadManager;
 
     /*
      * (non-Javadoc)
@@ -160,12 +168,12 @@ public class MusicService extends MediaBrowserServiceCompat implements
         super.onCreate();
         LogHelper.d(TAG, "onCreate");
 
-        mMusicProvider = new MusicProvider();
+        mMusicProvider = new MusicProvider(this);
 
         // To make the app more responsive, fetch and cache catalog information now.
         // This can help improve the response time in the method
         // {@link #onLoadChildren(String, Result<List<MediaItem>>) onLoadChildren()}.
-        mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT,null,null /* Callback */);
+        mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT, null, null /* Callback */);
 
         mPackageValidator = new PackageValidator(this);
 
@@ -198,6 +206,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         LocalPlayback playback = new LocalPlayback(this, mMusicProvider);
         mPlaybackManager = new PlaybackManager(this, getResources(), mMusicProvider, queueManager,
                 playback);
+        downloadManager = new DownLoadManager(this, mMusicProvider);
 
         // Start a new MediaSession
         mSession = new MediaSessionCompat(this, "MusicService");
@@ -240,6 +249,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
     /**
      * (non-Javadoc)
+     *
      * @see android.app.Service#onStartCommand(android.content.Intent, int, int)
      */
     @Override
@@ -267,6 +277,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
     /**
      * (non-Javadoc)
+     *
      * @see android.app.Service#onDestroy()
      */
     @Override
@@ -323,13 +334,13 @@ public class MusicService extends MediaBrowserServiceCompat implements
                                @NonNull final Result<List<MediaItem>> result) {
         LogHelper.d(TAG, "OnLoadChildren: parentMediaId=", parentMediaId);
 
-        String categoryType=MediaIDHelper.extractBrowseCategoryTypeFromMediaID(parentMediaId);
-        if(categoryType != null && MEDIA_ID_MUSICS_BY_SEARCH.equalsIgnoreCase(categoryType)){
-            final String searchQuery=MediaIDHelper.extractBrowseCategoryValueFromMediaID(parentMediaId);
-            List<MediaItem> list=mMusicProvider.getSearchList(searchQuery);
-            if(list != null){
+        String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(parentMediaId);
+        if (categoryType != null && MEDIA_ID_MUSICS_BY_SEARCH.equalsIgnoreCase(categoryType)) {
+            final String searchQuery = MediaIDHelper.extractBrowseCategoryValueFromMediaID(parentMediaId);
+            List<MediaItem> list = mMusicProvider.getSearchList(searchQuery);
+            if (list != null) {
                 result.sendResult(list);
-            }else {
+            } else {
                 result.detach();
                 mMusicProvider.retrieveMediaAsync(RetrieveType.SEARCH, searchQuery, new MusicProvider.Callback() {
                     @Override
@@ -338,13 +349,13 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     }
                 });
             }
-        }else if(categoryType != null && MEDIA_ID_MUSICS_BY_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)){
-            final String musicId=MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
-            List<MediaItem> list=mMusicProvider.getVideosIDList(musicId);
-            if(list != null){
+        } else if (categoryType != null && MEDIA_ID_MUSICS_BY_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)) {
+            final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+            List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
+            if (list != null) {
                 mPlaybackManager.updatePlayBackQueue(parentMediaId);
                 result.sendResult(list);
-            }else {
+            } else {
                 result.detach();
                 mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
                     @Override
@@ -354,17 +365,40 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     }
                 });
             }
+        }else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType)) {
+            result.sendResult(mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources()));
         }
-        else if (mMusicProvider.isInitialized()) {
+        else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
+            result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+        } else if (mMusicProvider.isInitialized()) {
             // if music library is ready, return immediately
             result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
         } else {
             // otherwise, only return results when the music library is retrieved
             result.detach();
-            mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT,"",new MusicProvider.Callback() {
+            mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT, "", new MusicProvider.Callback() {
                 @Override
                 public void onMusicCatalogReady(boolean success) {
                     result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onLoadItem(String mediaId, final Result<MediaBrowserCompat.MediaItem> result) {
+        String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId);
+        if (!downloadManager.isDownloadManagerAvailable()) {
+            result.sendResult(null);
+        }
+        result.detach();
+        if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
+            final String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
+            downloadManager.downLoad(musicId, new BroadcastReceiver() {
+                public void onReceive(Context ctxt, Intent intent) {
+                    if (intent.getAction().equals(ACTION_DOWNLOAD_COMPLETE)) {
+                        //result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
+                    }
                 }
             });
         }

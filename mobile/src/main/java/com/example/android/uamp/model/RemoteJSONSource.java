@@ -17,6 +17,7 @@
 package com.example.android.uamp.model;
 
 import android.support.v4.media.MediaMetadataCompat;
+import android.telecom.Connection;
 
 import com.example.android.uamp.utils.LogHelper;
 
@@ -26,8 +27,10 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -35,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+
+import static java.lang.System.in;
 
 /**
  * Utility class to get a list of MusicTrack's based on a server-side JSON
@@ -66,7 +71,7 @@ public class RemoteJSONSource implements MusicProviderSource {
         try {
             String apiUrl = "";
             if (retrieveType.DEFAULT == retrieveType) {
-                apiUrl = CATALOG_URL + "&q=telugusongs";
+                apiUrl = CATALOG_URL + "&q=songs";
             } else if (retrieveType.SEARCH == retrieveType) {
                 StringBuilder sb = new StringBuilder();
                 for (String param : params) {
@@ -131,8 +136,9 @@ public class RemoteJSONSource implements MusicProviderSource {
         for (String musicId : metaData.keySet()) {
             id += musicId + ",";
         }
-        String url = duration + id;
+
         try {
+            String url = duration + URLEncoder.encode(id, "utf-8");
             JSONObject jsonObject= fetchJSONFromUrl(url);
             JSONArray jsonArray=jsonObject.getJSONArray("items");
             for(int i=0;i<jsonArray.length();i++){
@@ -153,6 +159,10 @@ public class RemoteJSONSource implements MusicProviderSource {
             }
         } catch (JSONException e) {
             e.printStackTrace();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            //throw new RuntimeException("Unable to get duration ", e);
         }
     }
 
@@ -265,8 +275,17 @@ public class RemoteJSONSource implements MusicProviderSource {
         BufferedReader reader = null;
         try {
             URLConnection urlConnection = new URL(urlString).openConnection();
-            reader = new BufferedReader(new InputStreamReader(
-                    urlConnection.getInputStream(), "iso-8859-1"));
+            HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
+            int status = httpURLConnection.getResponseCode();
+            InputStream in;
+            if (status >= 400) {
+                 in = httpURLConnection.getErrorStream();
+            }
+            else{
+                in=urlConnection.getInputStream();
+            }
+            reader = new BufferedReader( new InputStreamReader(
+                   in, "iso-8859-1"));
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {

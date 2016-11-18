@@ -36,6 +36,8 @@ import android.util.LruCache;
 import android.view.Menu;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
 
 import com.example.android.uamp.R;
 import com.example.android.uamp.model.MusicProvider;
@@ -48,6 +50,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -122,7 +125,7 @@ public class MusicPlayerActivity extends BaseActivity
                 intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         item.getDescription());
                 String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
-                intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, item.getDescription().getSubtitle().toString()));
+                intent.putExtra("mediaId", item.getDescription().getMediaId());
             }
             getSupportMediaController().getTransportControls()
                     .playFromMediaId(item.getMediaId(), null);
@@ -186,13 +189,14 @@ public class MusicPlayerActivity extends BaseActivity
             mVoiceSearchParams = intent.getExtras();
             String query = getIntent().getStringExtra(SearchManager.QUERY);
             mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
-        } else if (intent.getAction() != null && Intent.ACTION_VIEW.equals(getIntent().getAction())) {
-            //showResult(data);
-        } else {
+        }  else {
             if (savedInstanceState != null) {
                 // If there is a saved media ID, use it
                 mediaId = savedInstanceState.getString(SAVED_MEDIA_ID);
-            }else {
+            }else if(intent.getExtras() != null && intent.getExtras().getString(SAVED_MEDIA_ID) != null){
+                mediaId=intent.getExtras().getString(SAVED_MEDIA_ID);
+            }
+            else {
                 mediaId=MEDIA_ID_ROOT;
             }
         }
@@ -257,6 +261,16 @@ public class MusicPlayerActivity extends BaseActivity
         ComponentName cn = new ComponentName(this, MusicPlayerActivity.class);
         searchView.setSearchableInfo(
                 searchManager.getSearchableInfo(cn));
+        searchView.setMaxWidth(Integer.MAX_VALUE);
+
+        AutoCompleteTextView searchTextView = (AutoCompleteTextView) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
+        try {
+            Field mCursorDrawableRes = TextView.class.getDeclaredField("mCursorDrawableRes");
+            mCursorDrawableRes.setAccessible(true);
+            mCursorDrawableRes.set(searchTextView, R.drawable.cursor); //This sets the cursor resource ID to 0 or @null which will make it visible on white background
+        } catch (Exception e) {
+        }
+
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
 
             @Override

@@ -18,6 +18,7 @@ package com.example.android.uamp.ui;
 import android.app.Fragment;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
@@ -100,7 +101,7 @@ public class PlaybackControlsFragment extends Fragment {
                 if (metadata != null) {
                     intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         metadata.getDescription());
-                    intent.putExtra("mediaId",  MediaIDHelper.createMediaID(metadata.getDescription().getMediaId(),MEDIA_ID_MUSICS_BY_VIDEOID,metadata.getDescription().getSubtitle().toString()));
+                    intent.putExtra("mediaId",  metadata.getDescription().getMediaId());
                 }
                 startActivity(intent);
             }
@@ -159,9 +160,13 @@ public class PlaybackControlsFragment extends Fragment {
             artUrl = metadata.getDescription().getIconUri().toString();
         }
         if (!TextUtils.equals(artUrl, mArtUrl)) {
+
             mArtUrl = artUrl;
             Bitmap art = metadata.getDescription().getIconBitmap();
             AlbumArtCache cache = AlbumArtCache.getInstance();
+            if(mArtUrl == null){
+                art = BitmapFactory.decodeResource(getResources(), R.drawable.banner_tv);
+            }
             if (art == null) {
                 art = cache.getIconImage(mArtUrl);
             }

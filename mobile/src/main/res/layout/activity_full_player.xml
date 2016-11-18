@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -160,6 +161,14 @@ limitations under the License.
                         android:background="?selectableItemBackgroundBorderless"
                         android:contentDescription="@string/skip_next"
                         android:src="@drawable/ic_skip_next_white_48dp" />
+
+                    <ImageView
+                        android:id="@+id/download"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1.00"
+                        android:contentDescription="@string/skip_next"
+                        android:src="@android:drawable/stat_sys_download" />
 
                 </LinearLayout>
 

@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
@@ -64,6 +65,8 @@ public class QueueHelper {
 
         }else if(categoryType.equals(MEDIA_ID_MUSICS_BY_VIDEOID))  {
             tracks = musicProvider.getYoutubeIdBasedMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        }else if(categoryType.equals(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))  {
+            tracks = musicProvider.getDownLoadMusicList(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
 
         if(tracks == null)  {

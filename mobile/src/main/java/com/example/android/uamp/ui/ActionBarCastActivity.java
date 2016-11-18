@@ -40,6 +40,9 @@ import com.google.android.gms.cast.framework.CastState;
 import com.google.android.gms.cast.framework.CastStateListener;
 import com.google.android.gms.cast.framework.IntroductoryOverlay;
 
+import static com.example.android.uamp.ui.tv.TvBrowseActivity.SAVED_MEDIA_ID;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+
 /**
  * Abstract activity with toolbar, navigation drawer and cast support. Needs to be extended by
  * any activity that wants to be shown as a top level activity.
@@ -92,16 +95,20 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                     ActionBarCastActivity.this, R.anim.fade_in, R.anim.fade_out).toBundle();
 
                 Class activityClass = null;
+                Intent intent=null;
                 switch (mItemToOpenWhenDrawerCloses) {
                     case R.id.navigation_allmusic:
                         activityClass = MusicPlayerActivity.class;
+                        intent=new Intent(ActionBarCastActivity.this, activityClass);
                         break;
                     case R.id.navigation_playlists:
-                        activityClass = PlaceholderActivity.class;
+                        activityClass = MusicPlayerActivity.class;
+                        intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_DOWNLOAD);
                         break;
                 }
                 if (activityClass != null) {
-                    startActivity(new Intent(ActionBarCastActivity.this, activityClass), extras);
+                    startActivity(intent, extras);
                     finish();
                 }
             }

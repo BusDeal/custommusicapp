@@ -19,6 +19,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
@@ -33,6 +34,8 @@ import android.widget.TextView;
 
 import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.R;
+
+import java.io.File;
 
 public class MediaItemViewHolder {
 
@@ -124,6 +127,15 @@ public class MediaItemViewHolder {
         if (art == null) {
             art = description.getIconBitmap();
         }
+        if(artUrl.startsWith("/")){
+            File imgFile = new File(artUrl);
+
+            if(imgFile.exists()) {
+
+                art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                art=Bitmap.createScaledBitmap(art, 200, 120, false);
+            }
+        }
         if (art != null) {
             // if we have the art cached or from the MediaDescription, use it:
             holder.alubmImageview.setImageBitmap(art);
@@ -135,7 +147,7 @@ public class MediaItemViewHolder {
                     // sanity check, in case a new fetch request has been done while
                     // the previous hasn't yet returned:
                     if (artUrl.equals(description.getIconUri().toString())) {
-                        holder.alubmImageview.setImageBitmap(icon);
+                        holder.alubmImageview.setImageBitmap(bitmap);
                     }
                 }
             });
