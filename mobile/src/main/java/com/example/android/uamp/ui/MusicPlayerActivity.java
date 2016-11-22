@@ -86,8 +86,8 @@ public class MusicPlayerActivity extends BaseActivity
 
     private Bundle mVoiceSearchParams;
     private SearchView searchView;
-    private LruCache<String, Integer> suggestionSelected = new LruCache<>(10);
-    private LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
+    private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
+    private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -290,7 +290,7 @@ public class MusicPlayerActivity extends BaseActivity
                     loadSearchSuggestions(query, menu, items);
                     return true;
                 }
-                if (query.length() < 2) {
+                if (query.length() < 1) {
                     return false;
                 }
                 List<String> items = suggestionAutoText.get(query);
@@ -346,23 +346,18 @@ public class MusicPlayerActivity extends BaseActivity
 
         });
 
-        searchView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
             @Override
-            public void onFocusChange(View view, boolean b) {
-                if (b) {
-                    Map<String, Integer> list = suggestionSelected.snapshot();
-                    List<String> items = new ArrayList<String>();
-                    for (String suggestion : list.keySet()) {
-                        items.add(suggestion);
-                    }
-                    loadSearchSuggestions("", menu, items);
-
+            public void onClick(View view) {
+                Map<String, Integer> list = suggestionSelected.snapshot();
+                List<String> items = new ArrayList<String>();
+                for (String suggestion : list.keySet()) {
+                    items.add(suggestion);
                 }
-
+                loadSearchSuggestions("", menu, items);
             }
-
-
         });
+
 
 
         searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
@@ -385,7 +380,7 @@ public class MusicPlayerActivity extends BaseActivity
                 intent.putExtra(SearchManager.QUERY, suggestion);
                 intent.setAction(Intent.ACTION_SEARCH);
                 finish();
-                startActivity(intent);
+                startActivityForResult(intent,0);
                 return true;
             }
         });

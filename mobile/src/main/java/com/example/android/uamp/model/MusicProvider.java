@@ -22,6 +22,7 @@ import android.graphics.Bitmap;
 import android.media.browse.MediaBrowser;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -96,6 +97,7 @@ public class MusicProvider {
         mSource = source;
         mMusicListByGenre = new ConcurrentHashMap<>();
         mMusicListById = new LinkedHashMap<>();
+        downloadMusicList=DownLoadManager.getDownloadedMedia(context);
         mFavoriteTracks = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     }
 
@@ -569,7 +571,20 @@ public class MusicProvider {
         MediaMetadataCompat copy = new MediaMetadataCompat.Builder(metadata)
                 .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)
                 .build();
-        return new MediaBrowserCompat.MediaItem(copy.getDescription(),
+
+        MediaDescriptionCompat.Builder bob = new MediaDescriptionCompat.Builder();
+        bob.setMediaId(copy.getDescription().getMediaId());
+        bob.setTitle(copy.getDescription().getTitle());
+        bob.setSubtitle(metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE));
+        bob.setDescription(metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION));
+        bob.setIconBitmap(copy.getDescription().getIconBitmap());
+        bob.setIconUri(copy.getDescription().getIconUri());
+        Bundle bundle=new Bundle();
+        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DURATION,metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
+        bob.setExtras(bundle);
+        MediaDescriptionCompat mDescription = bob.build();
+
+        return new MediaBrowserCompat.MediaItem(mDescription,
                 MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
 
     }

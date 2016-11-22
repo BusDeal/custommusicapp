@@ -26,6 +26,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,10 +50,14 @@ public class MediaItemViewHolder {
     private static ColorStateList sColorStatePlaying;
     private static ColorStateList sColorStateNotPlaying;
 
+    private static int imageWidth;
+    private static int imageHeight;
+
     ImageView alubmImageview;
     ImageView mImageView;
     TextView mTitleView;
     TextView mDescriptionView;
+    TextView duration;
 
     static View setupView(Activity activity, View convertView, ViewGroup parent,
                           MediaDescriptionCompat description, int state) {
@@ -72,16 +78,20 @@ public class MediaItemViewHolder {
             holder.alubmImageview = (ImageView) convertView.findViewById(R.id.alubm_uri);
             holder.mTitleView = (TextView) convertView.findViewById(R.id.title);
             holder.mDescriptionView = (TextView) convertView.findViewById(R.id.description);
+            holder.duration = (TextView) convertView.findViewById(R.id.duration);
             convertView.setTag(holder);
         } else {
             holder = (MediaItemViewHolder) convertView.getTag();
             cachedState = (Integer) convertView.getTag(R.id.tag_mediaitem_state_cache);
         }
-
+        Long duration=description.getExtras().getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
+        String time=DateUtils.formatElapsedTime(duration / 1000);
+        holder.duration.setText(time+"");
         holder.mTitleView.setText(description.getTitle());
         holder.mDescriptionView.setText(description.getSubtitle());
+        imageWidth= (int)(convertView.getResources().getDimension(R.dimen.imageWidth)/convertView.getResources().getDisplayMetrics().density);
+        imageHeight= (int)(convertView.getResources().getDimension(R.dimen.imageHeight)/convertView.getResources().getDisplayMetrics().density);
         fetchImageAsync(holder,description);
-
         // If the state of convertView is different, we need to adapt the view to the
         // new state.
         if (cachedState == null || cachedState != state) {
@@ -123,7 +133,7 @@ public class MediaItemViewHolder {
         }
         String artUrl = description.getIconUri().toString();
         AlbumArtCache cache = AlbumArtCache.getInstance();
-        Bitmap art = cache.getIconImage(artUrl);
+        Bitmap art = cache.getBigImage(artUrl);
         if (art == null) {
             art = description.getIconBitmap();
         }
@@ -131,12 +141,11 @@ public class MediaItemViewHolder {
             File imgFile = new File(artUrl);
 
             if(imgFile.exists()) {
-
                 art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                art=Bitmap.createScaledBitmap(art, 200, 120, false);
             }
         }
         if (art != null) {
+            art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
             // if we have the art cached or from the MediaDescription, use it:
             holder.alubmImageview.setImageBitmap(art);
         } else {
@@ -147,6 +156,7 @@ public class MediaItemViewHolder {
                     // sanity check, in case a new fetch request has been done while
                     // the previous hasn't yet returned:
                     if (artUrl.equals(description.getIconUri().toString())) {
+                        bitmap=Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, false);
                         holder.alubmImageview.setImageBitmap(bitmap);
                     }
                 }

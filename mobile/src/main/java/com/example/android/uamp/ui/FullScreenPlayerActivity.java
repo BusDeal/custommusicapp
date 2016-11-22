@@ -17,9 +17,12 @@ package com.example.android.uamp.ui;
 
 import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
+import android.app.SearchManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,8 +37,10 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.view.Menu;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -49,6 +54,7 @@ import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 
+import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -57,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
@@ -67,7 +74,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     private static final String TAG = LogHelper.makeLogTag(FullScreenPlayerActivity.class);
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
-
+    private static final String FRAGMENT_TAG = "uamp_list_container";
+    private final Handler mHandler = new Handler();
+    private final ScheduledExecutorService mExecutorService =
+            Executors.newSingleThreadScheduledExecutor();
     private ImageView mSkipPrev;
     private ImageView mSkipNext;
     private ImageView mDownLoad;
@@ -83,26 +93,16 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
     private ImageView mBackgroundImage;
-
     private String mCurrentArtUrl;
-    private final Handler mHandler = new Handler();
     private MediaBrowserCompat mMediaBrowser;
-
+    private ScheduledFuture<?> mScheduleFuture;
+    private PlaybackStateCompat mLastPlaybackState;
     private final Runnable mUpdateProgressTask = new Runnable() {
         @Override
         public void run() {
             updateProgress();
         }
     };
-
-    private final ScheduledExecutorService mExecutorService =
-            Executors.newSingleThreadScheduledExecutor();
-
-    private ScheduledFuture<?> mScheduleFuture;
-    private PlaybackStateCompat mLastPlaybackState;
-    private static final String FRAGMENT_TAG = "uamp_list_container";
-    private Boolean isDownLoading = false;
-
     private final MediaControllerCompat.Callback mCallback = new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
@@ -118,7 +118,6 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             }
         }
     };
-
     private final MediaBrowserCompat.ConnectionCallback mConnectionCallback =
             new MediaBrowserCompat.ConnectionCallback() {
                 @Override
@@ -132,6 +131,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     }
                 }
             };
+    private Boolean isDownLoading = false;
 
     private void navigateToBrowser(String mediaId) {
         LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
@@ -254,6 +254,9 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         mMediaBrowser = new MediaBrowserCompat(this,
                 new ComponentName(this, MusicService.class), mConnectionCallback, null);
         final String mediaId = getIntent().getExtras().getString("mediaId");
+        if (MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId) != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
+            mDownLoad.setVisibility(INVISIBLE);
+        }
         mDownLoad.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -261,6 +264,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     return;
                 }
                 isDownLoading = true;
+                mDownLoad.setImageResource(R.drawable.ic_downloader);
                 String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MEDIA_ID_MUSICS_BY_DOWNLOAD, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
                 mMediaBrowser.getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
                     /**
@@ -270,6 +274,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                      */
                     @Override
                     public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
+                        mDownLoad.setImageResource(R.drawable.ic_download);
                         isDownLoading = false;
                     }
 
@@ -279,13 +284,27 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                      * @param itemId The media id of the media item which could not be loaded.
                      */
                     @Override
-                    public void onError(@NonNull String itemId) {
+                    public void onError(@NonNull String message) {
+                        Toast.makeText(FullScreenPlayerActivity.this, "Unable to download music", Toast.LENGTH_LONG);
+                        mDownLoad.setImageResource(R.drawable.ic_download);
                         isDownLoading = false;
                     }
                 });
             }
         });
         navigateToBrowser(mediaId);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(final Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        SearchManager searchManager =
+                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView =
+                (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setVisibility(INVISIBLE);
+        return true;
     }
 
     private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {
@@ -377,6 +396,12 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         Bitmap art = cache.getBigImage(artUrl);
         if (art == null) {
             art = description.getIconBitmap();
+        }
+        if (artUrl.startsWith("/")) {
+            File imgFile = new File(artUrl);
+            if (imgFile.exists()) {
+                art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            }
         }
         if (art != null) {
             // if we have the art cached or from the MediaDescription, use it:
@@ -506,7 +531,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                     item.getDescription());
             String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
-            intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, item.getDescription().getSubtitle().toString()));
+            intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, "sagar"));
         }
         getSupportMediaController().getTransportControls()
                 .playFromMediaId(item.getMediaId(), null);

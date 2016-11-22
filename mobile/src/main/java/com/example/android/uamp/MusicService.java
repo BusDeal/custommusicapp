@@ -390,18 +390,25 @@ public class MusicService extends MediaBrowserServiceCompat implements
         String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId);
         if (!downloadManager.isDownloadManagerAvailable()) {
             result.sendResult(null);
+            return;
         }
-        result.detach();
+
         if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
             final String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
-            downloadManager.downLoad(musicId, new BroadcastReceiver() {
+            Boolean start=downloadManager.downLoad(musicId, new BroadcastReceiver() {
                 public void onReceive(Context ctxt, Intent intent) {
                     if (intent.getAction().equals(ACTION_DOWNLOAD_COMPLETE)) {
                         //result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
+                        //return;
                     }
                 }
             });
+            if(!start){
+                result.sendResult(null);
+                return;
+            }
         }
+        result.detach();
     }
 
     /**

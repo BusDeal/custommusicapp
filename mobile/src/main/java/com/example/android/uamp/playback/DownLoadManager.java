@@ -18,6 +18,7 @@ import com.example.android.uamp.model.MutableMediaMetadata;
 import com.example.android.uamp.utils.MediaIDHelper;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -62,9 +63,13 @@ public class DownLoadManager {
         }.execute();
     }
 
-    public void downLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
+    public Boolean downLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
 
 
+        Map<String,MutableMediaMetadata> downloadedMedia=getDownloadedMedia(context);
+        if(downloadedMedia.containsKey(musicId)){
+            return false;
+        }
         new AsyncTask<String, Void, String>() {
             @Override
             protected String doInBackground(String... params) {
@@ -102,7 +107,7 @@ public class DownLoadManager {
             }
         }.execute();
 
-
+        return true;
     }
 
     public static  Map<String, MutableMediaMetadata> getDownloadedMedia(Context context) {
@@ -110,7 +115,7 @@ public class DownLoadManager {
         DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         Cursor cursor = manager.query(new DownloadManager.Query());
         cursor.moveToFirst();
-        Map<String, MutableMediaMetadata> mMusicListById = new HashMap<>();
+        Map<String, MutableMediaMetadata> mMusicListById = new LinkedHashMap<>();
 
         while (!cursor.isAfterLast()) {
             String status=cursor.getString(7);

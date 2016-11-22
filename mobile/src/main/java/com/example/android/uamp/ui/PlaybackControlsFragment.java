@@ -101,7 +101,7 @@ public class PlaybackControlsFragment extends Fragment {
                 if (metadata != null) {
                     intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         metadata.getDescription());
-                    intent.putExtra("mediaId",  metadata.getDescription().getMediaId());
+                    intent.putExtra("mediaId",  MediaIDHelper.createMediaID(metadata.getDescription().getMediaId(),MEDIA_ID_MUSICS_BY_VIDEOID,"sagar"));
                 }
                 startActivity(intent);
             }

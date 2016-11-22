@@ -71,6 +71,7 @@ public class MediaBrowserFragment extends Fragment {
     private ProgressDialog progress;
     private final BroadcastReceiver mConnectivityChangeReceiver = new BroadcastReceiver() {
         private boolean oldOnline = false;
+
         @Override
         public void onReceive(Context context, Intent intent) {
             // We don't care about network changes while this fragment is not associated
@@ -92,54 +93,54 @@ public class MediaBrowserFragment extends Fragment {
     // is being shown, the current title and description and the PlaybackState.
     private final MediaControllerCompat.Callback mMediaControllerCallback =
             new MediaControllerCompat.Callback() {
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
-            super.onMetadataChanged(metadata);
-            if (metadata == null) {
-                return;
-            }
-            LogHelper.d(TAG, "Received metadata change to media ",
-                    metadata.getDescription().getMediaId());
-            mBrowserAdapter.notifyDataSetChanged();
-        }
+                @Override
+                public void onMetadataChanged(MediaMetadataCompat metadata) {
+                    super.onMetadataChanged(metadata);
+                    if (metadata == null) {
+                        return;
+                    }
+                    LogHelper.d(TAG, "Received metadata change to media ",
+                            metadata.getDescription().getMediaId());
+                    mBrowserAdapter.notifyDataSetChanged();
+                }
 
-        @Override
-        public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
-            super.onPlaybackStateChanged(state);
-            LogHelper.d(TAG, "Received state change: ", state);
-            checkForUserVisibleErrors(false);
-            mBrowserAdapter.notifyDataSetChanged();
-        }
-    };
+                @Override
+                public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
+                    super.onPlaybackStateChanged(state);
+                    LogHelper.d(TAG, "Received state change: ", state);
+                    checkForUserVisibleErrors(false);
+                    mBrowserAdapter.notifyDataSetChanged();
+                }
+            };
 
     private final MediaBrowserCompat.SubscriptionCallback mSubscriptionCallback =
-        new MediaBrowserCompat.SubscriptionCallback() {
-            @Override
-            public void onChildrenLoaded(@NonNull String parentId,
-                                         @NonNull List<MediaBrowserCompat.MediaItem> children) {
-                try {
-                    progress.dismiss();
-                    LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
-                        "  count=" + children.size());
-                    checkForUserVisibleErrors(children.isEmpty());
-                    mBrowserAdapter.clear();
-                    for (MediaBrowserCompat.MediaItem item : children) {
-                        mBrowserAdapter.add(item);
+            new MediaBrowserCompat.SubscriptionCallback() {
+                @Override
+                public void onChildrenLoaded(@NonNull String parentId,
+                                             @NonNull List<MediaBrowserCompat.MediaItem> children) {
+                    try {
+                        progress.dismiss();
+                        LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
+                                "  count=" + children.size());
+                        checkForUserVisibleErrors(children.isEmpty());
+                        mBrowserAdapter.clear();
+                        for (MediaBrowserCompat.MediaItem item : children) {
+                            mBrowserAdapter.add(item);
+                        }
+                        mBrowserAdapter.notifyDataSetChanged();
+                    } catch (Throwable t) {
+                        LogHelper.e(TAG, "Error on childrenloaded", t);
                     }
-                    mBrowserAdapter.notifyDataSetChanged();
-                } catch (Throwable t) {
-                    LogHelper.e(TAG, "Error on childrenloaded", t);
                 }
-            }
 
-            @Override
-            public void onError(@NonNull String id) {
-                progress.dismiss();
-                LogHelper.e(TAG, "browse fragment subscription onError, id=" + id);
-                Toast.makeText(getActivity(), R.string.error_loading_media, Toast.LENGTH_LONG).show();
-                checkForUserVisibleErrors(true);
-            }
-        };
+                @Override
+                public void onError(@NonNull String id) {
+                    progress.dismiss();
+                    LogHelper.e(TAG, "browse fragment subscription onError, id=" + id);
+                    Toast.makeText(getActivity(), R.string.error_loading_media, Toast.LENGTH_LONG).show();
+                    checkForUserVisibleErrors(true);
+                }
+            };
 
     @Override
     public void onAttach(Activity activity) {
@@ -162,7 +163,7 @@ public class MediaBrowserFragment extends Fragment {
 
         progress = new ProgressDialog(getActivity());
         progress.setTitle("Loading");
-        progress.setMessage("Wait while loading...");
+        progress.setMessage("Loading Music...");
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
         progress.show();
 
@@ -197,7 +198,7 @@ public class MediaBrowserFragment extends Fragment {
 
         // Registers BroadcastReceiver to track network connection changes.
         this.getActivity().registerReceiver(mConnectivityChangeReceiver,
-            new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
     @Override
@@ -280,10 +281,10 @@ public class MediaBrowserFragment extends Fragment {
             MediaControllerCompat controller = ((FragmentActivity) getActivity())
                     .getSupportMediaController();
             if (controller != null
-                && controller.getMetadata() != null
-                && controller.getPlaybackState() != null
-                && controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_ERROR
-                && controller.getPlaybackState().getErrorMessage() != null) {
+                    && controller.getMetadata() != null
+                    && controller.getPlaybackState() != null
+                    && controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_ERROR
+                    && controller.getPlaybackState().getErrorMessage() != null) {
                 mErrorMessage.setText(controller.getPlaybackState().getErrorMessage());
                 showError = true;
             } else if (forceError) {
@@ -294,8 +295,8 @@ public class MediaBrowserFragment extends Fragment {
         }
         mErrorView.setVisibility(showError ? View.VISIBLE : View.GONE);
         LogHelper.d(TAG, "checkForUserVisibleErrors. forceError=", forceError,
-            " showError=", showError,
-            " isOnline=", NetworkHelper.isOnline(getActivity()));
+                " showError=", showError,
+                " isOnline=", NetworkHelper.isOnline(getActivity()));
     }
 
     private void updateTitle() {
@@ -347,12 +348,13 @@ public class MediaBrowserFragment extends Fragment {
                 }
             }
             return MediaItemViewHolder.setupView((Activity) getContext(), convertView, parent,
-                item.getDescription(), itemState);
+                    item.getDescription(), itemState);
         }
     }
 
     public interface MediaFragmentListener extends MediaBrowserProvider {
         void onMediaItemSelected(MediaBrowserCompat.MediaItem item);
+
         void setToolbarTitle(CharSequence title);
     }
 
