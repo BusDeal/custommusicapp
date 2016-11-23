@@ -62,15 +62,12 @@
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
-            <meta-data
+            <!--<meta-data
                 android:name="android.app.default_searchable"
-                android:value=".ui.MusicPlayerActivity" />
+                android:value=".ui.MusicPlayerActivity" />-->
 
             <meta-data
                 android:name="android.app.searchable"

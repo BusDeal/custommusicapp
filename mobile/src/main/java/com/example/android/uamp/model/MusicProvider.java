@@ -97,7 +97,7 @@ public class MusicProvider {
         mSource = source;
         mMusicListByGenre = new ConcurrentHashMap<>();
         mMusicListById = new LinkedHashMap<>();
-        downloadMusicList=DownLoadManager.getDownloadedMedia(context);
+        downloadMusicList = DownLoadManager.getDownloadedMedia(context);
         mFavoriteTracks = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     }
 
@@ -433,6 +433,11 @@ public class MusicProvider {
             while (tracks.hasNext()) {
                 MediaMetadataCompat item = tracks.next();
                 String musicId = item.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID);
+                if (downloadMusicList.containsKey(musicId)) {
+                    item = new MediaMetadataCompat.Builder(item)
+                            .putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, "true")
+                            .build();
+                }
                 map.put(musicId, new MutableMediaMetadata(musicId, item));
             }
 
@@ -579,8 +584,12 @@ public class MusicProvider {
         bob.setDescription(metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION));
         bob.setIconBitmap(copy.getDescription().getIconBitmap());
         bob.setIconUri(copy.getDescription().getIconUri());
-        Bundle bundle=new Bundle();
-        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DURATION,metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
+        Bundle bundle = new Bundle();
+        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
+        bundle.putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, metadata.getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED));
+        if (copy.getDescription().getMediaId() != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(copy.getDescription().getMediaId()).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
+            bundle.putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, "true");
+        }
         bob.setExtras(bundle);
         MediaDescriptionCompat mDescription = bob.build();
 

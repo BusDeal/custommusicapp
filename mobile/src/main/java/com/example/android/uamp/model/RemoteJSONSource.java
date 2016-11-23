@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 
 import static java.lang.System.in;
 
@@ -65,19 +66,25 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TRACK_NUMBER = "trackNumber";
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
-
+    private static String queryList[]={"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs","best 20 songs"};
     @Override
     public Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType, String... params) {
         try {
             String apiUrl = "";
             if (retrieveType.DEFAULT == retrieveType) {
-                apiUrl = CATALOG_URL + "&q=songs";
+                Random r = new Random();
+                int num=r.nextInt(queryList.length);
+                try {
+                    apiUrl = CATALOG_URL + "&q=" + URLEncoder.encode(queryList[num], "utf-8");
+                }catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
             } else if (retrieveType.SEARCH == retrieveType) {
                 StringBuilder sb = new StringBuilder();
                 for (String param : params) {
                     sb.append(param);
                 }
-                if (!sb.toString().contains("songs")) {
+                if (!(sb.toString().contains("songs") || sb.toString().contains("song") || sb.toString().contains("jukebox"))) {
                     sb.append("songs");
                 }
                 String query = sb.toString();
@@ -214,7 +221,7 @@ public class RemoteJSONSource implements MusicProviderSource {
             args = title.split("-");
         }
         if (args != null) {
-            if (args.length >= 1) {
+            if (args.length > 1) {
                 album = args[0];
                 genre = args[1];
                 artist = args[1];

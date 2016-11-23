@@ -334,54 +334,80 @@ public class MusicService extends MediaBrowserServiceCompat implements
                                @NonNull final Result<List<MediaItem>> result) {
         LogHelper.d(TAG, "OnLoadChildren: parentMediaId=", parentMediaId);
 
-        String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(parentMediaId);
-        if (categoryType != null && MEDIA_ID_MUSICS_BY_SEARCH.equalsIgnoreCase(categoryType)) {
-            final String searchQuery = MediaIDHelper.extractBrowseCategoryValueFromMediaID(parentMediaId);
-            List<MediaItem> list = mMusicProvider.getSearchList(searchQuery);
-            if (list != null) {
-                result.sendResult(list);
-            } else {
-                result.detach();
-                mMusicProvider.retrieveMediaAsync(RetrieveType.SEARCH, searchQuery, new MusicProvider.Callback() {
-                    @Override
-                    public void onMusicCatalogReady(boolean success) {
-                        result.sendResult(mMusicProvider.getSearchList(searchQuery));
-                    }
-                });
-            }
-        } else if (categoryType != null && MEDIA_ID_MUSICS_BY_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)) {
-            final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
-            List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
-            if (list != null) {
-                mPlaybackManager.updatePlayBackQueue(parentMediaId);
-                result.sendResult(list);
-            } else {
-                result.detach();
-                mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
-                    @Override
-                    public void onMusicCatalogReady(boolean success) {
-                        mPlaybackManager.updatePlayBackQueue(parentMediaId);
-                        result.sendResult(mMusicProvider.getVideosIDList(musicId));
-                    }
-                });
-            }
-        }else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType)) {
-            result.sendResult(mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources()));
-        }
-        else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
-            result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
-        } else if (mMusicProvider.isInitialized()) {
-            // if music library is ready, return immediately
-            result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
-        } else {
-            // otherwise, only return results when the music library is retrieved
-            result.detach();
-            mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT, "", new MusicProvider.Callback() {
-                @Override
-                public void onMusicCatalogReady(boolean success) {
-                    result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+        try {
+
+            String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(parentMediaId);
+            if (categoryType != null && MEDIA_ID_MUSICS_BY_SEARCH.equalsIgnoreCase(categoryType)) {
+                final String searchQuery = MediaIDHelper.extractBrowseCategoryValueFromMediaID(parentMediaId);
+                List<MediaItem> list = mMusicProvider.getSearchList(searchQuery);
+                if (list != null) {
+                    result.sendResult(list);
+                } else {
+                    result.detach();
+                    mMusicProvider.retrieveMediaAsync(RetrieveType.SEARCH, searchQuery, new MusicProvider.Callback() {
+                        @Override
+                        public void onMusicCatalogReady(boolean success) {
+                            result.sendResult(mMusicProvider.getSearchList(searchQuery));
+                        }
+                    });
                 }
-            });
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)) {
+                final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+                List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
+                if (list != null) {
+                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                    result.sendResult(list);
+                } else {
+                    result.detach();
+                    mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
+                        @Override
+                        public void onMusicCatalogReady(boolean success) {
+                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                            List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
+                            if (items == null || items.isEmpty()) {
+                                items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
+                            }
+                            result.sendResult(items);
+                        }
+                    });
+                }
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType)) {
+                final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+                List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
+                if (list != null) {
+                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                    result.sendResult(list);
+                } else {
+                    result.detach();
+                    mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
+                        @Override
+                        public void onMusicCatalogReady(boolean success) {
+                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                            List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
+                            if (items == null || items.isEmpty()) {
+                                items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
+                            }
+                            result.sendResult(items);
+                        }
+                    });
+                }
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
+                result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+            } else if (mMusicProvider.isInitialized()) {
+                // if music library is ready, return immediately
+                result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+            } else {
+                // otherwise, only return results when the music library is retrieved
+                result.detach();
+                mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT, "", new MusicProvider.Callback() {
+                    @Override
+                    public void onMusicCatalogReady(boolean success) {
+                        result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+                    }
+                });
+            }
+        } catch (Exception e){
+            result.sendResult(null);
         }
     }
 

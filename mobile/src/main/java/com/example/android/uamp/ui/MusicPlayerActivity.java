@@ -124,7 +124,6 @@ public class MusicPlayerActivity extends BaseActivity
             if (item != null) {
                 intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         item.getDescription());
-                String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
                 intent.putExtra("mediaId", item.getDescription().getMediaId());
             }
             getSupportMediaController().getTransportControls()
@@ -376,7 +375,7 @@ public class MusicPlayerActivity extends BaseActivity
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
                 }
                 searchView.setQuery(suggestion, true);
-                Intent intent = new Intent();
+                Intent intent = new Intent(MusicPlayerActivity.this,MusicPlayerActivity.class);
                 intent.putExtra(SearchManager.QUERY, suggestion);
                 intent.setAction(Intent.ACTION_SEARCH);
                 finish();

@@ -18,11 +18,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
     android:orientation="horizontal"
-    android:weightSum="3"
     android:layout_height="@dimen/media_item_height">
     <ImageView
         android:id="@+id/alubm_uri"
-        android:layout_weight="0.5"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
         android:adjustViewBounds="true"
@@ -36,7 +34,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_weight="0.5"
         android:src="@drawable/banner_tv">
 
         <TextView
@@ -44,34 +41,59 @@
             tools:text="The Best Music EVAH1111 FOREVER YOUNG I'M AWESOME!!!11^H^H"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
             android:maxLines="2"
             android:ellipsize="end"
-            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="?android:attr/textColorPrimary"/>
 
-        <TextView
-            android:id="@+id/description"
-            tools:text="John Doe, his brothers, his sisters, his pets and his more than amazing band"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="?android:attr/textColorSecondary"/>
-        <TextView
-            android:id="@+id/duration"
-            tools:text="0:00"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="?android:attr/textColorSecondary"/>
 
+        <LinearLayout
+            android:id="@+id/down"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/description"
+                    tools:text="John Doe, his brothers, his sisters, his pets and his more than amazing band"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="?android:attr/textColorSecondary"/>
+                <TextView
+                    android:id="@+id/duration"
+                    tools:text="0:00"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="?android:attr/textColorSecondary"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                />
+            <ImageView
+                android:id="@+id/download"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="right"
+                android:layout_margin="@dimen/media_item_icon_margin_start"
+                android:contentDescription="@string/download"
+                android:src="@drawable/ic_download"/>
+        </LinearLayout>
     </LinearLayout>
-
 
     <View
         android:layout_width="0dp"
@@ -79,15 +101,7 @@
         android:layout_weight="1"
         />
 
-    <ImageView
-        android:id="@+id/download"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="end|center_horizontal"
-        android:contentDescription="@string/download"
-        android:layout_weight="0.5"
-        android:layout_marginTop="@dimen/media_item_icon_margin_start"
-        android:src="@drawable/ic_download"/>
+
 
     <ImageView
         android:id="@+id/play_eq"
@@ -95,7 +109,7 @@
         android:layout_height="wrap_content"
         android:tint="@color/media_item_icon_not_playing"
         android:contentDescription="@string/play_item"
-        android:gravity="right"
+        android:gravity="end"
         android:src="@drawable/ic_play_arrow_black_36dp"/>
 
 </LinearLayout>

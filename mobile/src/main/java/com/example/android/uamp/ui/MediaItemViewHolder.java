@@ -25,6 +25,7 @@ import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
+import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.text.format.DateUtils;
@@ -33,11 +34,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.R;
+import com.example.android.uamp.model.MusicProviderSource;
+import com.example.android.uamp.utils.MediaIDHelper;
 
 import java.io.File;
+
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 public class MediaItemViewHolder {
 
@@ -58,9 +65,10 @@ public class MediaItemViewHolder {
     TextView mTitleView;
     TextView mDescriptionView;
     TextView duration;
+    ImageView download;
 
     static View setupView(Activity activity, View convertView, ViewGroup parent,
-                          MediaDescriptionCompat description, int state) {
+                          MediaDescriptionCompat description, int state, MediaBrowserCompat mediaBrowser) {
 
         if (sColorStateNotPlaying == null || sColorStatePlaying == null) {
             initializeColorStateLists(activity);
@@ -79,11 +87,17 @@ public class MediaItemViewHolder {
             holder.mTitleView = (TextView) convertView.findViewById(R.id.title);
             holder.mDescriptionView = (TextView) convertView.findViewById(R.id.description);
             holder.duration = (TextView) convertView.findViewById(R.id.duration);
+            holder.download = (ImageView) convertView.findViewById(R.id.download);
+            if(description.getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
+                holder.download.setVisibility(View.INVISIBLE);
+            }
+
             convertView.setTag(holder);
         } else {
             holder = (MediaItemViewHolder) convertView.getTag();
             cachedState = (Integer) convertView.getTag(R.id.tag_mediaitem_state_cache);
         }
+        downloadListner(holder.download,description.getMediaId(),mediaBrowser);
         Long duration=description.getExtras().getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
         String time=DateUtils.formatElapsedTime(duration / 1000);
         holder.duration.setText(time+"");
@@ -125,6 +139,39 @@ public class MediaItemViewHolder {
         }
 
         return convertView;
+    }
+
+    private static void downloadListner(final ImageView mDownLoad, final String mediaId,final MediaBrowserCompat mMediaBrowser){
+        mDownLoad.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mDownLoad.setImageResource(R.drawable.ic_downloader);
+                mDownLoad.setClickable(false);
+                String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MEDIA_ID_MUSICS_BY_DOWNLOAD, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
+                mMediaBrowser.getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
+                    /**
+                     * Called when the item has been returned by the browser service.
+                     *
+                     * @param item The item that was returned or null if it doesn't exist.
+                     */
+                    @Override
+                    public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
+                        mDownLoad.setImageResource(R.drawable.ic_download);
+                    }
+
+                    /**
+                     * Called when the item doesn't exist or there was an error retrieving it.
+                     *
+                     * @param itemId The media id of the media item which could not be loaded.
+                     */
+                    @Override
+                    public void onError(@NonNull String message) {
+                        //Toast.makeText(MediaItemViewHolder.this., "Unable to download music", Toast.LENGTH_LONG);
+                        mDownLoad.setImageResource(R.drawable.ic_download);
+                    }
+                });
+            }
+        });
     }
 
     private static void fetchImageAsync(final MediaItemViewHolder holder, @NonNull final MediaDescriptionCompat description) {

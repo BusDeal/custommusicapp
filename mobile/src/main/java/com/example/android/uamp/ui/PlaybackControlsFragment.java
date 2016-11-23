@@ -41,6 +41,8 @@ import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 
+import java.io.File;
+
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
@@ -170,7 +172,15 @@ public class PlaybackControlsFragment extends Fragment {
             if (art == null) {
                 art = cache.getIconImage(mArtUrl);
             }
+            if(artUrl.startsWith("/")){
+                File imgFile = new File(artUrl);
+
+                if(imgFile.exists()) {
+                    art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                }
+            }
             if (art != null) {
+                art=Bitmap.createScaledBitmap(art, 128, 128, false);
                 mAlbumArt.setImageBitmap(art);
             } else {
                 cache.fetch(artUrl, new AlbumArtCache.FetchListener() {
@@ -216,8 +226,8 @@ public class PlaybackControlsFragment extends Fragment {
                 enablePlay = true;
                 break;
             case PlaybackStateCompat.STATE_ERROR:
-                LogHelper.e(TAG, "error playbackstate: ", state.getErrorMessage());
-                Toast.makeText(getActivity(), state.getErrorMessage(), Toast.LENGTH_LONG).show();
+                //LogHelper.e(TAG, "error playbackstate: ", state.getErrorMessage());
+                //Toast.makeText(getActivity(), state.getErrorMessage(), Toast.LENGTH_LONG).show();
                 break;
         }
 

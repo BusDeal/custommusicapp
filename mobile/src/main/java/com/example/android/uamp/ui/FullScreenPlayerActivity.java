@@ -299,12 +299,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-        SearchManager searchManager =
-                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView =
                 (SearchView) menu.findItem(R.id.search).getActionView();
-        searchView.setVisibility(INVISIBLE);
-        return true;
+        searchView.setVisibility(View.INVISIBLE);
+        return false;
     }
 
     private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {

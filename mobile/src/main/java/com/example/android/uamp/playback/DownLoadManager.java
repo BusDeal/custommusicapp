@@ -79,6 +79,9 @@ public class DownLoadManager {
 
             @Override
             protected void onPostExecute(String source) {
+                if(source == null){
+                    return;
+                }
                 MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(musicId);
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse(source));
                 request.setDescription(mediaMetadataCompat.getDescription().getDescription());

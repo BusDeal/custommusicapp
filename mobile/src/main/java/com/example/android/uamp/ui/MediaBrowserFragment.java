@@ -48,6 +48,9 @@ import com.example.android.uamp.utils.NetworkHelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
+
 /**
  * A Fragment that lists all the various browsable queues available
  * from a {@link android.service.media.MediaBrowserService}.
@@ -75,7 +78,7 @@ public class MediaBrowserFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             // We don't care about network changes while this fragment is not associated
-            // with a media ID (for example, while it is being initialized)
+            // with a media ID (for example, while it is being initialized )
             if (mMediaId != null) {
                 boolean isOnline = NetworkHelper.isOnline(context);
                 if (isOnline != oldOnline) {
@@ -123,6 +126,9 @@ public class MediaBrowserFragment extends Fragment {
                         LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
                                 "  count=" + children.size());
                         checkForUserVisibleErrors(children.isEmpty());
+                        if(!children.isEmpty()){
+                            mErrorView.setVisibility(View.GONE);
+                        }
                         mBrowserAdapter.clear();
                         for (MediaBrowserCompat.MediaItem item : children) {
                             mBrowserAdapter.add(item);
@@ -271,6 +277,10 @@ public class MediaBrowserFragment extends Fragment {
     }
 
     private void checkForUserVisibleErrors(boolean forceError) {
+
+        if(mMediaId != null && ( MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))){
+            return;
+        }
         boolean showError = forceError;
         // If offline, message is about the lack of connectivity:
         if (!NetworkHelper.isOnline(getActivity())) {
@@ -294,7 +304,7 @@ public class MediaBrowserFragment extends Fragment {
             }
         }
         mErrorView.setVisibility(showError ? View.VISIBLE : View.GONE);
-        LogHelper.d(TAG, "checkForUserVisibleErrors. forceError=", forceError,
+        LogHelper.e(TAG, "checkForUserVisibleErrors. forceError=", forceError,
                 " showError=", showError,
                 " isOnline=", NetworkHelper.isOnline(getActivity()));
     }
@@ -316,7 +326,7 @@ public class MediaBrowserFragment extends Fragment {
     }
 
     // An adapter for showing the list of browsed MediaItem's
-    private static class BrowseAdapter extends ArrayAdapter<MediaBrowserCompat.MediaItem> {
+    private  class BrowseAdapter extends ArrayAdapter<MediaBrowserCompat.MediaItem> {
 
         public BrowseAdapter(Activity context) {
             super(context, R.layout.media_list_item, new ArrayList<MediaBrowserCompat.MediaItem>());
@@ -348,7 +358,7 @@ public class MediaBrowserFragment extends Fragment {
                 }
             }
             return MediaItemViewHolder.setupView((Activity) getContext(), convertView, parent,
-                    item.getDescription(), itemState);
+                    item.getDescription(), itemState,mMediaFragmentListener.getMediaBrowser());
         }
     }
 
