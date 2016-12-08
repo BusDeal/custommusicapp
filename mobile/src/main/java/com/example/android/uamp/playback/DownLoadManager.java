@@ -17,9 +17,12 @@ import com.example.android.uamp.model.MusicProviderSource;
 import com.example.android.uamp.model.MutableMediaMetadata;
 import com.example.android.uamp.utils.MediaIDHelper;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 
 /**
  * Created by sagar on 5/11/16.
@@ -66,8 +69,8 @@ public class DownLoadManager {
     public Boolean downLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
 
 
-        Map<String,MutableMediaMetadata> downloadedMedia=getDownloadedMedia(context);
-        if(downloadedMedia.containsKey(musicId)){
+        Map<String, MutableMediaMetadata> downloadedMedia = getDownloadedMedia(context);
+        if (downloadedMedia.containsKey(musicId)) {
             return false;
         }
         new AsyncTask<String, Void, String>() {
@@ -79,13 +82,13 @@ public class DownLoadManager {
 
             @Override
             protected void onPostExecute(String source) {
-                if(source == null){
+                if (source == null) {
                     return;
                 }
                 MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(musicId);
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse(source));
                 request.setDescription(mediaMetadataCompat.getDescription().getDescription());
-                request.setTitle(mediaMetadataCompat.getDescription().getTitle() + "::" + musicId+"::"+mediaMetadataCompat.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
+                request.setTitle(mediaMetadataCompat.getDescription().getTitle() + "::" + musicId + "::" + mediaMetadataCompat.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
                 request.setMimeType("audio");
                 // in order for this if to run, you must use the android 3.2 to compile your app
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
@@ -113,114 +116,125 @@ public class DownLoadManager {
         return true;
     }
 
-    public static  Map<String, MutableMediaMetadata> getDownloadedMedia(Context context) {
+    public static Map<String, MutableMediaMetadata> getDownloadedMedia(Context context) {
 
-        DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-        Cursor cursor = manager.query(new DownloadManager.Query());
-        cursor.moveToFirst();
         Map<String, MutableMediaMetadata> mMusicListById = new LinkedHashMap<>();
+        try {
+            DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            Cursor cursor = manager.query(new DownloadManager.Query());
+            cursor.moveToFirst();
 
-        while (!cursor.isAfterLast()) {
-            String status=cursor.getString(7);
-            if(!status.equalsIgnoreCase("200")){
-                continue;
-            }
-            String mimeType = cursor.getString(9);
-            String title = cursor.getString(4);
-            String desc = cursor.getString(5);
 
-            if (mimeType == null || !(mimeType.equalsIgnoreCase("img") || mimeType.equalsIgnoreCase("audio")) ) {
-                cursor.moveToNext();
-                continue;
-            }
-            String data[] = title.split("::");
-            if(data.length < 2){
-                cursor.moveToNext();
-                continue;
-            }
+            while (!cursor.isAfterLast()) {
+                String status = cursor.getString(7);
+                if (!status.equalsIgnoreCase("200")) {
+                    cursor.moveToNext();
+                    continue;
+                }
+                String mimeType = cursor.getString(9);
+                String title = cursor.getString(4);
+                String desc = cursor.getString(5);
 
-            String src = cursor.getString(1);
-            title = data[0];
-            String  id=data[1];
-            Long duration= 0l;
-            if(data.length > 2) {
-                 duration = new Long(data[2]);
-                 duration=duration*1000;
-            }
-            String musicId = id;
-            MutableMediaMetadata mediaMetadata = mMusicListById.get(musicId);
-            if (mimeType.equalsIgnoreCase("img")) {
+                if (mimeType == null || !(mimeType.equalsIgnoreCase("img") || mimeType.equalsIgnoreCase("audio"))) {
+                    cursor.moveToNext();
+                    continue;
+                }
+                String data[] = title.split("::");
+                if (data.length < 2) {
+                    cursor.moveToNext();
+                    continue;
+                }
 
+                String src = cursor.getString(1);
+                File file = new File(src);
+                if (!file.exists()) {
+                    cursor.moveToNext();
+                    continue;
+                }
+                title = data[0];
+                String id = data[1];
+                Long duration = 0l;
+                if (data.length > 2) {
+                    duration = new Long(data[2]);
+                    duration = duration * 1000;
+                }
+                String musicId = id;
+                MutableMediaMetadata mediaMetadata = mMusicListById.get(musicId);
+                if (mimeType.equalsIgnoreCase("img")) {
+
+                    if (mediaMetadata != null) {
+                        MediaMetadataCompat compat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
+                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                                .build();
+                        mediaMetadata.metadata = compat;
+                    } else {
+                        MediaMetadataCompat compat = new MediaMetadataCompat.Builder()
+                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                                .build();
+                        MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, compat);
+                        mMusicListById.put(musicId, mutableMediaMetadata);
+                    }
+                    cursor.moveToNext();
+                    continue;
+                }
+
+
+                String album = title, genre = title, artist = title;
+                String args[] = null;
+                if (title.contains("||")) {
+                    args = title.split("\\|\\|");
+                } else if (title.contains("|")) {
+                    args = title.split("\\|");
+                } else if (title.contains("-")) {
+                    args = title.split("-");
+                }
+                if (args != null) {
+                    if (args.length >= 1) {
+                        album = args[0];
+                        genre = args[1];
+                        artist = args[1];
+                    }
+                    if (args.length > 2) {
+                        artist = args[2];
+                    }
+                }
+
+                album = album.replace("|", "");
+                genre = genre.replace("|", "");
+                artist = artist.replace("|", "");
                 if (mediaMetadata != null) {
-                    MediaMetadataCompat compat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
-                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                    MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
+                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
+                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                            .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
+                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                            .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
                             .build();
-                    mediaMetadata.metadata = compat;
+
+                    MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);
+                    mMusicListById.put(musicId, mutableMediaMetadata);
                 } else {
-                    MediaMetadataCompat compat = new MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                    MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder()
+                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
+                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                            .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
+                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                            .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
                             .build();
-                    MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, compat);
+
+                    MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);
                     mMusicListById.put(musicId, mutableMediaMetadata);
                 }
                 cursor.moveToNext();
-                continue;
             }
-
-
-            String album = title, genre = title, artist = title;
-            String args[] = null;
-            if (title.contains("||")) {
-                args = title.split("\\|\\|");
-            } else if (title.contains("|")) {
-                args = title.split("\\|");
-            } else if (title.contains("-")) {
-                args = title.split("-");
-            }
-            if (args != null) {
-                if (args.length >= 1) {
-                    album = args[0];
-                    genre = args[1];
-                    artist = args[1];
-                }
-                if (args.length > 2) {
-                    artist = args[2];
-                }
-            }
-
-            album = album.replace("|", "");
-            genre = genre.replace("|", "");
-            artist = artist.replace("|", "");
-            if (mediaMetadata != null) {
-                MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
-                        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
-                        .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
-                        .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                        .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-                        .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
-                        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-                        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                        .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
-                        .build();
-
-                MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);
-                mMusicListById.put(musicId, mutableMediaMetadata);
-            } else {
-                MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder()
-                        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
-                        .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
-                        .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                        .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-                        .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
-                        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-                        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                        .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
-                        .build();
-
-                MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);
-                mMusicListById.put(musicId, mutableMediaMetadata);
-            }
-            cursor.moveToNext();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return mMusicListById;

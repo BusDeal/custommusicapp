@@ -18,6 +18,7 @@ package com.example.android.uamp.playback;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -31,6 +32,7 @@ import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.QueueHelper;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -148,7 +150,7 @@ public class QueueManager {
     }
 
     public void updateQueue(String mediaId){
-        mPlayingQueue.addAll(QueueHelper.getPlayingQueue(mediaId, mMusicProvider));
+        mPlayingQueue.addAll(QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
     }
 
     public MediaSessionCompat.QueueItem getCurrentMusic() {
@@ -200,23 +202,49 @@ public class QueueManager {
         if (metadata.getDescription().getIconBitmap() == null &&
                 metadata.getDescription().getIconUri() != null) {
             String albumUri = metadata.getDescription().getIconUri().toString();
-            AlbumArtCache.getInstance().fetch(albumUri, new AlbumArtCache.FetchListener() {
-                @Override
-                public void onFetched(String artUrl, Bitmap bitmap, Bitmap icon) {
-                    mMusicProvider.updateMusicArt(musicId, bitmap, icon);
-
-                    // If we are still playing the same music, notify the listeners:
-                    MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
-                    if (currentMusic == null) {
-                        return;
-                    }
-                    String currentPlayingId = MediaIDHelper.extractMusicIDFromMediaID(
-                            currentMusic.getDescription().getMediaId());
-                    if (musicId.equals(currentPlayingId)) {
-                        mListener.onMetadataChanged(mMusicProvider.getMusic(currentPlayingId));
-                    }
+            Bitmap bitmap=null;
+            if(albumUri.startsWith("/")){
+                File imgFile = new File(albumUri);
+                if(imgFile.exists()) {
+                    bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
                 }
-            });
+            }
+            if(bitmap != null){
+                changeAndUpdateMetadata(musicId,bitmap);
+            }else {
+                AlbumArtCache.getInstance().fetch(albumUri, new AlbumArtCache.FetchListener() {
+                    @Override
+                    public void onFetched(String artUrl, Bitmap bitmap, Bitmap icon) {
+                       changeAndUpdateMetadata(musicId,bitmap);
+                        // If we are still playing the same music, notify the listeners:
+                    }
+                });
+            }
+        }
+    }
+
+    private void changeAndUpdateMetadata(String musicId,Bitmap bitmap) {
+        bitmap=Bitmap.createScaledBitmap(bitmap, 128, 128, false);
+        Bitmap icon=Bitmap.createScaledBitmap(bitmap, 800, 480, false);
+        mMusicProvider.updateMusicArt(musicId, bitmap, bitmap);
+        MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
+        if (currentMusic == null) {
+            return;
+        }
+        String currentPlayingId = MediaIDHelper.extractMusicIDFromMediaID(
+                currentMusic.getDescription().getMediaId());
+
+        if (musicId.equals(currentPlayingId)) {
+
+            String categories = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(
+                    currentMusic.getDescription().getMediaId());
+            String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
+                    musicId, categories,"sagar");
+            MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(currentPlayingId);
+            MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(mediaMetadataCompat)
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)
+                    .build();
+            mListener.onMetadataChanged(trackCopy);
         }
     }
 

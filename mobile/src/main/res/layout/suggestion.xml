@@ -9,7 +9,7 @@
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:srcCompat="@android:drawable/ic_search_category_default"
+        android:src="@drawable/ic_search"
         android:layout_margin="5dp"
         android:id="@+id/searchImage" />
 
@@ -18,6 +18,9 @@
         android:layout_margin="5dp"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:background="@color/white"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textColor="?android:attr/textColorPrimary"
         android:layout_gravity="center_horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -26,6 +26,7 @@ import java.util.Map;
 public interface MusicProviderSource {
     String CUSTOM_METADATA_TRACK_SOURCE = "__SOURCE__";
     String CUSTOM_METADATA_DOWNLOADED = "__DOWNLOADED__";
+    String CUSTOM_METADATA_FAVOURITE = "__FAVOURITE__";
     Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType,String... parms);
 
     String getAudioSourceUrl(String videoId) ;

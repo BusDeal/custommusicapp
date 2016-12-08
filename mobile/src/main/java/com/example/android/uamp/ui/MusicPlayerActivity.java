@@ -20,6 +20,7 @@ import android.app.SearchManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.AsyncTask;
@@ -38,12 +39,15 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.uamp.R;
 import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.model.RemoteJSONSource;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
+import com.example.android.uamp.utils.NetworkHelper;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -106,6 +110,28 @@ public class MusicPlayerActivity extends BaseActivity
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        SharedPreferences prefs = getSharedPreferences("MY_SUGGESTIONS", MODE_PRIVATE);
+        String restoredText = prefs.getString("suggestions", null);
+        if (restoredText != null) {
+           Gson gson=new Gson();
+            suggestionSelected= gson.fromJson(restoredText,LruCache.class);
+        }
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        SharedPreferences.Editor editor = getSharedPreferences("MY_SUGGESTIONS", MODE_PRIVATE).edit();
+        Gson gson=new Gson();
+        String json=gson.toJson(suggestionSelected);
+        editor.putString("suggestions",json);
+        editor.commit();
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         String mediaId = getMediaId();
         if (mediaId != null) {
@@ -124,7 +150,6 @@ public class MusicPlayerActivity extends BaseActivity
             if (item != null) {
                 intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                         item.getDescription());
-                intent.putExtra("mediaId", item.getDescription().getMediaId());
             }
             getSupportMediaController().getTransportControls()
                     .playFromMediaId(item.getMediaId(), null);
@@ -185,7 +210,7 @@ public class MusicPlayerActivity extends BaseActivity
                     mVoiceSearchParams.getString(SearchManager.QUERY));
         } else if (intent.getAction() != null && Intent.ACTION_SEARCH.equals(getIntent().getAction())) {
             // Handle the normal search query case
-            mVoiceSearchParams = intent.getExtras();
+           // mVoiceSearchParams = intent.getExtras();
             String query = getIntent().getStringExtra(SearchManager.QUERY);
             mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
         }  else {
@@ -368,18 +393,24 @@ public class MusicPlayerActivity extends BaseActivity
             @Override
             public boolean onSuggestionClick(int position) {
                 String suggestion = getSuggestion(position);
-                Integer oldSuggestion = suggestionSelected.get(suggestion);
-                if (oldSuggestion == null) {
+                if (!NetworkHelper.isOnline(MusicPlayerActivity.this)) {
+                    searchView.setQuery(suggestion, true);
+                    Toast.makeText(MusicPlayerActivity.this, "Please Check internet connection.", Toast.LENGTH_LONG).show();
+                    return true;
+                }
+                //Integer oldSuggestion = suggestionSelected.get(suggestion);
+                suggestionSelected.put(suggestion, 1);
+                /*if (oldSuggestion == null) {
                     suggestionSelected.put(suggestion, 1);
                 } else {
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
-                }
+                }*/
                 searchView.setQuery(suggestion, true);
                 Intent intent = new Intent(MusicPlayerActivity.this,MusicPlayerActivity.class);
                 intent.putExtra(SearchManager.QUERY, suggestion);
                 intent.setAction(Intent.ACTION_SEARCH);
+                startActivity(intent);
                 finish();
-                startActivityForResult(intent,0);
                 return true;
             }
         });
@@ -403,8 +434,8 @@ public class MusicPlayerActivity extends BaseActivity
             cursor.addRow(temp);
         }
 
-        final SearchView search = (SearchView) menu.findItem(R.id.search).getActionView();
-        search.setSuggestionsAdapter(new SuggestionsAdapter(searchView, this, cursor, items));
+        //final SearchView search = (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setSuggestionsAdapter(new SuggestionsAdapter(searchView, this, cursor, items));
 
 
     }

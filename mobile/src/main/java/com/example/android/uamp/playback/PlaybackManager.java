@@ -31,6 +31,7 @@ import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.model.MusicProviderSource;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
+import com.example.android.uamp.utils.NetworkHelper;
 import com.example.android.uamp.utils.WearHelper;
 
 import java.io.IOException;
@@ -89,7 +90,13 @@ public class PlaybackManager implements Playback.Callback {
             }else {
                 mPlayback.setState(PlaybackStateCompat.STATE_CONNECTING);
                 this.onPlaybackStatusChanged(PlaybackStateCompat.STATE_CONNECTING);
-                getAudioUrlAndPlay(currentMusic);
+                if(NetworkHelper.isOnline(mMusicProvider.getContext())) {
+                    getAudioUrlAndPlay(currentMusic);
+                }else{
+                    mQueueManager.updateMetadata();
+                    mMediaSessionCallback.onStop();
+                    PlaybackManager.this.onError("Please connect to internet to play for this song");
+                }
             }
         }
     }
@@ -127,6 +134,7 @@ public class PlaybackManager implements Playback.Callback {
 
 
                     }else{
+                        mQueueManager.updateMetadata();
                         mMediaSessionCallback.onStop();
                         PlaybackManager.this.onError("Youtube is restricting this song to download as of now, Please try playing different song");
                     }
@@ -394,7 +402,7 @@ public class PlaybackManager implements Playback.Callback {
                     String mediaId = currentMusic.getDescription().getMediaId();
                     if (mediaId != null) {
                         String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
-                        mMusicProvider.setFavorite(musicId, !mMusicProvider.isFavorite(musicId));
+                        mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId),true);
                     }
                 }
                 // playback state needs to be updated because the "Favorite" icon on the

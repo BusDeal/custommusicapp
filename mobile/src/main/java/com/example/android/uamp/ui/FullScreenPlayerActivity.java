@@ -41,6 +41,7 @@ import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -253,8 +254,16 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
         mMediaBrowser = new MediaBrowserCompat(this,
                 new ComponentName(this, MusicService.class), mConnectionCallback, null);
-        final String mediaId = getIntent().getExtras().getString("mediaId");
-        if (MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId) != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
+        String tmpMediaId=null;
+        if (getIntent() != null) {
+            MediaDescriptionCompat description = getIntent().getParcelableExtra(
+                    MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
+            if (description != null) {
+                tmpMediaId=description.getMediaId();
+            }
+        }
+        final String mediaId=tmpMediaId;
+        if (mediaId != null && MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId) != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
             mDownLoad.setVisibility(INVISIBLE);
         }
         mDownLoad.setOnClickListener(new View.OnClickListener() {
@@ -302,7 +311,18 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         SearchView searchView =
                 (SearchView) menu.findItem(R.id.search).getActionView();
         searchView.setVisibility(View.INVISIBLE);
-        return false;
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {
@@ -529,7 +549,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                     item.getDescription());
             String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
-            intent.putExtra("mediaId", MediaIDHelper.createMediaID(musicId, MEDIA_ID_MUSICS_BY_VIDEOID, "sagar"));
+            intent.putExtra("mediaId", item.getDescription().getMediaId());
         }
         getSupportMediaController().getTransportControls()
                 .playFromMediaId(item.getMediaId(), null);

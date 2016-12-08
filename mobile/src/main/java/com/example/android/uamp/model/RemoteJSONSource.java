@@ -199,7 +199,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                     }
                 }
             }
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;

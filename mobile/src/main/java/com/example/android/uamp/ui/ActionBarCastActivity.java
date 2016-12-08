@@ -42,6 +42,7 @@ import com.google.android.gms.cast.framework.IntroductoryOverlay;
 
 import static com.example.android.uamp.ui.tv.TvBrowseActivity.SAVED_MEDIA_ID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 
 /**
  * Abstract activity with toolbar, navigation drawer and cast support. Needs to be extended by
@@ -101,10 +102,15 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
                         break;
-                    case R.id.navigation_playlists:
+                    case R.id.navigation_downloads:
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
                         intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_DOWNLOAD);
+                        break;
+                    case R.id.navigation_favorites:
+                        activityClass = MusicPlayerActivity.class;
+                        intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_FAVOURITE);
                         break;
                 }
                 if (activityClass != null) {
@@ -285,8 +291,8 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                 });
         if (MusicPlayerActivity.class.isAssignableFrom(getClass())) {
             navigationView.setCheckedItem(R.id.navigation_allmusic);
-        } else if (PlaceholderActivity.class.isAssignableFrom(getClass())) {
-            navigationView.setCheckedItem(R.id.navigation_playlists);
+            navigationView.setCheckedItem(R.id.navigation_downloads);
+            navigationView.setCheckedItem(R.id.navigation_favorites);
         }
     }
 

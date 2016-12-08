@@ -114,7 +114,7 @@ public class PlaybackControlsFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        LogHelper.d(TAG, "fragment.onStart");
+        LogHelper.e(TAG, "fragment.onStart");
         MediaControllerCompat controller = ((FragmentActivity) getActivity())
                 .getSupportMediaController();
         if (controller != null) {
@@ -125,7 +125,7 @@ public class PlaybackControlsFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        LogHelper.d(TAG, "fragment.onStop");
+        LogHelper.e(TAG, "fragment.onStop");
         MediaControllerCompat controller = ((FragmentActivity) getActivity())
                 .getSupportMediaController();
         if (controller != null) {
@@ -145,7 +145,7 @@ public class PlaybackControlsFragment extends Fragment {
     }
 
     private void onMetadataChanged(MediaMetadataCompat metadata) {
-        LogHelper.d(TAG, "onMetadataChanged ", metadata);
+        LogHelper.e(TAG, "onMetadataChanged ", metadata);
         if (getActivity() == null) {
             LogHelper.w(TAG, "onMetadataChanged called when getActivity null," +
                     "this should not happen if the callback was properly unregistered. Ignoring.");
@@ -212,7 +212,7 @@ public class PlaybackControlsFragment extends Fragment {
     private void onPlaybackStateChanged(PlaybackStateCompat state) {
         LogHelper.d(TAG, "onPlaybackStateChanged ", state);
         if (getActivity() == null) {
-            LogHelper.w(TAG, "onPlaybackStateChanged called when getActivity null," +
+            LogHelper.e(TAG, "onPlaybackStateChanged called when getActivity null," +
                     "this should not happen if the callback was properly unregistered. Ignoring.");
             return;
         }
@@ -259,7 +259,7 @@ public class PlaybackControlsFragment extends Fragment {
             PlaybackStateCompat stateObj = controller.getPlaybackState();
             final int state = stateObj == null ?
                     PlaybackStateCompat.STATE_NONE : stateObj.getState();
-            LogHelper.d(TAG, "Button pressed, in state " + state);
+            LogHelper.e(TAG, "Button pressed, in state " + state);
             switch (v.getId()) {
                 case R.id.play_pause:
                     LogHelper.d(TAG, "Play button pressed, in state " + state);

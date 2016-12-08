@@ -26,12 +26,17 @@ import android.text.TextUtils;
 public class MutableMediaMetadata {
 
     public MediaMetadataCompat metadata;
-    public final String trackId;
+    public String trackId;
 
     public MutableMediaMetadata(String trackId, MediaMetadataCompat metadata) {
         this.metadata = metadata;
         this.trackId = trackId;
     }
+
+    public MutableMediaMetadata() {
+
+    }
+
 
     @Override
     public boolean equals(Object o) {
@@ -50,5 +55,21 @@ public class MutableMediaMetadata {
     @Override
     public int hashCode() {
         return trackId.hashCode();
+    }
+
+    public MediaMetadataCompat getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(MediaMetadataCompat metadata) {
+        this.metadata = metadata;
+    }
+
+    public String getTrackId(){
+        return trackId;
+    }
+
+    public void setTrackId(String trackId){
+        this.trackId=trackId;
     }
 }

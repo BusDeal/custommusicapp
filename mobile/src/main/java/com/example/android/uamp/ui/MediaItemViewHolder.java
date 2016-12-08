@@ -18,6 +18,7 @@ package com.example.android.uamp.ui;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.AnimationDrawable;
@@ -89,7 +90,7 @@ public class MediaItemViewHolder {
             holder.duration = (TextView) convertView.findViewById(R.id.duration);
             holder.download = (ImageView) convertView.findViewById(R.id.download);
             if(description.getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
-                holder.download.setVisibility(View.INVISIBLE);
+                holder.download.setVisibility(View.GONE);
             }
 
             convertView.setTag(holder);
@@ -105,7 +106,7 @@ public class MediaItemViewHolder {
         holder.mDescriptionView.setText(description.getSubtitle());
         imageWidth= (int)(convertView.getResources().getDimension(R.dimen.imageWidth)/convertView.getResources().getDisplayMetrics().density);
         imageHeight= (int)(convertView.getResources().getDimension(R.dimen.imageHeight)/convertView.getResources().getDisplayMetrics().density);
-        fetchImageAsync(holder,description);
+        fetchImageAsync(convertView,holder,description);
         // If the state of convertView is different, we need to adapt the view to the
         // new state.
         if (cachedState == null || cachedState != state) {
@@ -174,10 +175,11 @@ public class MediaItemViewHolder {
         });
     }
 
-    private static void fetchImageAsync(final MediaItemViewHolder holder, @NonNull final MediaDescriptionCompat description) {
+    private static void fetchImageAsync(final View view, final MediaItemViewHolder holder, @NonNull final MediaDescriptionCompat description) {
         if (description.getIconUri() == null) {
             return;
         }
+
         String artUrl = description.getIconUri().toString();
         AlbumArtCache cache = AlbumArtCache.getInstance();
         Bitmap art = cache.getBigImage(artUrl);
@@ -206,6 +208,13 @@ public class MediaItemViewHolder {
                         bitmap=Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, false);
                         holder.alubmImageview.setImageBitmap(bitmap);
                     }
+                }
+
+                @Override
+                public void onError(String artUrl, Exception e){
+                    Bitmap bm = BitmapFactory.decodeResource(view.getResources(), R.drawable.ic_default);
+                    bm=Bitmap.createScaledBitmap(bm, imageWidth, imageHeight, false);
+                    holder.alubmImageview.setImageBitmap(bm);
                 }
             });
         }

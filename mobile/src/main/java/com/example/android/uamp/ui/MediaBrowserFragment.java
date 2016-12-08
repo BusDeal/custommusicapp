@@ -22,6 +22,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -31,6 +33,7 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -39,17 +42,25 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
+import com.example.android.uamp.model.MusicProviderSource;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.NetworkHelper;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
  * A Fragment that lists all the various browsable queues available
@@ -126,7 +137,7 @@ public class MediaBrowserFragment extends Fragment {
                         LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
                                 "  count=" + children.size());
                         checkForUserVisibleErrors(children.isEmpty());
-                        if(!children.isEmpty()){
+                        if (!children.isEmpty()) {
                             mErrorView.setVisibility(View.GONE);
                         }
                         mBrowserAdapter.clear();
@@ -147,6 +158,7 @@ public class MediaBrowserFragment extends Fragment {
                     checkForUserVisibleErrors(true);
                 }
             };
+
 
     @Override
     public void onAttach(Activity activity) {
@@ -174,7 +186,7 @@ public class MediaBrowserFragment extends Fragment {
         progress.show();
 
 
-        ListView listView = (ListView) rootView.findViewById(R.id.list_view);
+        com.baoyz.swipemenulistview.SwipeMenuListView listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
         listView.setAdapter(mBrowserAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -185,7 +197,118 @@ public class MediaBrowserFragment extends Fragment {
             }
         });
 
+        listView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
+                switch (index) {
+                    case 0:
+                        addAsFavourite(mBrowserAdapter.getItem(position));
+                        break;
+                    case 1:
+                        MediaBrowserCompat.MediaItem mediaItem = mBrowserAdapter.getItem(position);
+                        String srcUrl = mediaItem.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
+                        File file = new File(srcUrl);
+                        if (srcUrl != null && srcUrl.startsWith("/") && file.exists()) {
+                            boolean deleted = file.delete();
+                            String artUrl = mediaItem.getDescription().getIconUri().toString();
+                            file = new File(artUrl);
+                            if (deleted && artUrl != null && artUrl.startsWith("/") && file.exists()) {
+                                deleted = file.delete();
+                            }
+                        }
+                        mBrowserAdapter.remove(mediaItem);
+                        // delete
+                        break;
+                }
+                // false : close the menu; true : not close the menu
+                return false;
+            }
+        });
+
+        listView.setSwipeDirection(SwipeMenuListView.DIRECTION_LEFT);
+        listView.setMenuCreator(getItemMenuCreator());
+        listView.setOnSwipeListener(new SwipeMenuListView.OnSwipeListener() {
+
+            @Override
+            public void onSwipeStart(int position) {
+                MediaBrowserCompat.MediaItem mediaItem = mBrowserAdapter.getItem(position);
+            }
+
+            @Override
+            public void onSwipeEnd(int position) {
+                // swipe end
+            }
+        });
         return rootView;
+    }
+
+    private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem) {
+        String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaItem.getMediaId()), MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
+        mMediaFragmentListener.getMediaBrowser().getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
+            /**
+             * Called when the item has been returned by the browser service.
+             *
+             * @param item The item that was returned or null if it doesn't exist.
+             */
+            @Override
+            public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
+
+            }
+
+            /**
+             * Called when the item doesn't exist or there was an error retrieving it.
+             *
+             * @param itemId The media id of the media item which could not be loaded.
+             */
+            @Override
+            public void onError(@NonNull String message) {
+            }
+        });
+    }
+
+    private SwipeMenuCreator getItemMenuCreator() {
+        SwipeMenuCreator creator = new SwipeMenuCreator() {
+
+            @Override
+            public void create(SwipeMenu menu) {
+
+
+                // create "open" item
+                SwipeMenuItem openItem = new SwipeMenuItem(getActivity().
+                        getApplicationContext());
+                // set item background
+                openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
+                        0xCE)));
+                // set item width
+                openItem.setWidth(90);
+                // set a icon
+                openItem.setIcon(R.drawable.ic_favorite_border);
+                if(menu.getViewType() == 1){
+                    openItem.setIcon(R.drawable.ic_favorite);
+                }
+                // add to menu
+                menu.addMenuItem(openItem);
+
+                String mediaId = getMediaId();
+                if (mediaId != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD)) {
+                    SwipeMenuItem deleteItem = new SwipeMenuItem(
+                            getActivity().getApplicationContext());
+                    // set item background
+                    deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                            0x3F, 0x25)));
+                    // set item width
+                    deleteItem.setWidth(90);
+                    // set a icon
+                    deleteItem.setIcon(R.drawable.ic_delete);
+                    // add to menu
+                    menu.addMenuItem(deleteItem);
+                }
+                // create "delete" item
+
+
+            }
+        };
+        return creator;
     }
 
     @Override
@@ -278,7 +401,7 @@ public class MediaBrowserFragment extends Fragment {
 
     private void checkForUserVisibleErrors(boolean forceError) {
 
-        if(mMediaId != null && ( MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))){
+        if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))) {
             return;
         }
         boolean showError = forceError;
@@ -326,11 +449,33 @@ public class MediaBrowserFragment extends Fragment {
     }
 
     // An adapter for showing the list of browsed MediaItem's
-    private  class BrowseAdapter extends ArrayAdapter<MediaBrowserCompat.MediaItem> {
+    private class BrowseAdapter extends ArrayAdapter<MediaBrowserCompat.MediaItem> {
 
         public BrowseAdapter(Activity context) {
             super(context, R.layout.media_list_item, new ArrayList<MediaBrowserCompat.MediaItem>());
         }
+
+        @Override
+        public int getViewTypeCount() {
+            // menu type count
+            return 3;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            // current menu type
+
+            MediaBrowserCompat.MediaItem item = getItem(position);
+            if(item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE) != null){
+                return 1;
+            }
+            if(item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
+               return 2;
+            }
+
+            return 0;
+        }
+
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
@@ -358,7 +503,7 @@ public class MediaBrowserFragment extends Fragment {
                 }
             }
             return MediaItemViewHolder.setupView((Activity) getContext(), convertView, parent,
-                    item.getDescription(), itemState,mMediaFragmentListener.getMediaBrowser());
+                    item.getDescription(), itemState, mMediaFragmentListener.getMediaBrowser());
         }
     }
 

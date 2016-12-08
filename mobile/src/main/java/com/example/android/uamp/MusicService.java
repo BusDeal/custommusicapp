@@ -40,6 +40,7 @@ import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.model.RetrieveType;
 import com.example.android.uamp.playback.CastPlayback;
 import com.example.android.uamp.playback.DownLoadManager;
+import com.example.android.uamp.playback.FavouriteManager;
 import com.example.android.uamp.playback.LocalPlayback;
 import com.example.android.uamp.playback.Playback;
 import com.example.android.uamp.playback.PlaybackManager;
@@ -62,6 +63,8 @@ import java.util.List;
 import static android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
+import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.example.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
@@ -287,6 +290,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         // Service is being killed, so make sure we release our resources
         mPlaybackManager.handleStopRequest(null);
         mMediaNotificationManager.stopNotification();
+        FavouriteManager.saveFavourites(getBaseContext());
 
         if (mCastSessionManager != null) {
             mCastSessionManager.removeSessionManagerListener(mCastSessionManagerListener,
@@ -374,10 +378,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
             } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType)) {
                 final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
                 List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
-                if (list != null) {
-                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
-                    result.sendResult(list);
-                } else {
+                if (list == null || list.isEmpty()) {
                     result.detach();
                     mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
                         @Override
@@ -390,8 +391,18 @@ public class MusicService extends MediaBrowserServiceCompat implements
                             result.sendResult(items);
                         }
                     });
+                } else {
+                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                    result.sendResult(list);
                 }
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType)) {
+                List<MediaItem> items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_FAVOURITE, getResources());
+                mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                result.sendResult(items);
+
             } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
+                result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
             } else if (mMusicProvider.isInitialized()) {
                 // if music library is ready, return immediately
@@ -406,7 +417,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     }
                 });
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             result.sendResult(null);
         }
     }
@@ -414,14 +425,16 @@ public class MusicService extends MediaBrowserServiceCompat implements
     @Override
     public void onLoadItem(String mediaId, final Result<MediaBrowserCompat.MediaItem> result) {
         String categoryType = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId);
-        if (!downloadManager.isDownloadManagerAvailable()) {
-            result.sendResult(null);
-            return;
-        }
+
+        final String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
 
         if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
-            final String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
-            Boolean start=downloadManager.downLoad(musicId, new BroadcastReceiver() {
+            if (!downloadManager.isDownloadManagerAvailable()) {
+                result.sendResult(null);
+                return;
+            }
+
+            Boolean start = downloadManager.downLoad(musicId, new BroadcastReceiver() {
                 public void onReceive(Context ctxt, Intent intent) {
                     if (intent.getAction().equals(ACTION_DOWNLOAD_COMPLETE)) {
                         //result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
@@ -429,10 +442,13 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     }
                 }
             });
-            if(!start){
+            if (!start) {
                 result.sendResult(null);
                 return;
             }
+        }
+        if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
+            mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), true);
         }
         result.detach();
     }
