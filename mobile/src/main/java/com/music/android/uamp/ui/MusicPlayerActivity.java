@@ -36,6 +36,9 @@ import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.RemoteJSONSource;
 import com.music.android.uamp.utils.LogHelper;
@@ -65,11 +68,11 @@ public class MusicPlayerActivity extends BaseActivity
         implements MediaBrowserFragment.MediaFragmentListener {
 
     private static final String TAG = LogHelper.makeLogTag(MusicPlayerActivity.class);
-    private static final String SAVED_MEDIA_ID = "com.example.android.uamp.MEDIA_ID";
+    private static final String SAVED_MEDIA_ID = "com.music.android.uamp.MEDIA_ID";
     private static final String FRAGMENT_TAG = "uamp_list_container";
 
     public static final String EXTRA_START_FULLSCREEN =
-            "com.example.android.uamp.EXTRA_START_FULLSCREEN";
+            "com.music.android.uamp.EXTRA_START_FULLSCREEN";
 
     /**
      * Optionally used with {@link #EXTRA_START_FULLSCREEN} to carry a MediaDescription to
@@ -77,22 +80,25 @@ public class MusicPlayerActivity extends BaseActivity
      * while the {@link android.support.v4.media.session.MediaControllerCompat} is connecting.
      */
     public static final String EXTRA_CURRENT_MEDIA_DESCRIPTION =
-            "com.example.android.uamp.CURRENT_MEDIA_DESCRIPTION";
+            "com.music.android.uamp.CURRENT_MEDIA_DESCRIPTION";
 
     private Bundle mVoiceSearchParams;
     private SearchView searchView;
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
     private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
+    private Tracker mTracker;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         LogHelper.d(TAG, "Activity onCreate");
-
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
         setContentView(R.layout.activity_player);
         initializeToolbar();
 
         initializeFromParams(savedInstanceState, getIntent());
+
 
         // Only check if a full screen player is needed on the first time:
         if (savedInstanceState == null) {
@@ -106,8 +112,8 @@ public class MusicPlayerActivity extends BaseActivity
         SharedPreferences prefs = getSharedPreferences("MY_SUGGESTIONS", MODE_PRIVATE);
         String restoredText = prefs.getString("suggestions", null);
         if (restoredText != null) {
-           Gson gson=new Gson();
-            suggestionSelected= gson.fromJson(restoredText,LruCache.class);
+            Gson gson = new Gson();
+            suggestionSelected = gson.fromJson(restoredText, LruCache.class);
         }
 
     }
@@ -116,9 +122,9 @@ public class MusicPlayerActivity extends BaseActivity
     protected void onStop() {
         super.onStop();
         SharedPreferences.Editor editor = getSharedPreferences("MY_SUGGESTIONS", MODE_PRIVATE).edit();
-        Gson gson=new Gson();
-        String json=gson.toJson(suggestionSelected);
-        editor.putString("suggestions",json);
+        Gson gson = new Gson();
+        String json = gson.toJson(suggestionSelected);
+        editor.putString("suggestions", json);
         editor.commit();
     }
 
@@ -134,19 +140,33 @@ public class MusicPlayerActivity extends BaseActivity
     @Override
     public void onMediaItemSelected(MediaBrowserCompat.MediaItem item) {
         LogHelper.d(TAG, "onMediaItemSelected, mediaId=" + item.getMediaId());
-        if (item.isPlayable()) {
+        if (item != null && item.isPlayable()) {
             Intent intent = new Intent(MusicPlayerActivity.this, FullScreenPlayerActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-            if (item != null) {
-                intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
-                        item.getDescription());
-            }
+            intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                    item.getDescription());
+
+            mTracker.set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId());
+            mTracker.setScreenName("MusicPlayerActivity");
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("play")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
             getSupportMediaController().getTransportControls()
                     .playFromMediaId(item.getMediaId(), null);
             startActivity(intent);
 
+
         } else if (item.isBrowsable()) {
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("browse")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
             navigateToBrowser(item.getMediaId());
         } else {
             LogHelper.w(TAG, "Ignoring MediaItem that is neither browsable nor playable: ",
@@ -201,18 +221,17 @@ public class MusicPlayerActivity extends BaseActivity
                     mVoiceSearchParams.getString(SearchManager.QUERY));
         } else if (intent.getAction() != null && Intent.ACTION_SEARCH.equals(getIntent().getAction())) {
             // Handle the normal search query case
-           // mVoiceSearchParams = intent.getExtras();
+            // mVoiceSearchParams = intent.getExtras();
             String query = getIntent().getStringExtra(SearchManager.QUERY);
             mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
-        }  else {
+        } else {
             if (savedInstanceState != null) {
                 // If there is a saved media ID, use it
                 mediaId = savedInstanceState.getString(SAVED_MEDIA_ID);
-            }else if(intent.getExtras() != null && intent.getExtras().getString(SAVED_MEDIA_ID) != null){
-                mediaId=intent.getExtras().getString(SAVED_MEDIA_ID);
-            }
-            else {
-                mediaId=MEDIA_ID_ROOT;
+            } else if (intent.getExtras() != null && intent.getExtras().getString(SAVED_MEDIA_ID) != null) {
+                mediaId = intent.getExtras().getString(SAVED_MEDIA_ID);
+            } else {
+                mediaId = MEDIA_ID_ROOT;
             }
         }
         navigateToBrowser(mediaId);
@@ -374,7 +393,6 @@ public class MusicPlayerActivity extends BaseActivity
         });
 
 
-
         searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
             @Override
             public boolean onSuggestionSelect(int position) {
@@ -397,11 +415,10 @@ public class MusicPlayerActivity extends BaseActivity
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
                 }*/
                 searchView.setQuery(suggestion, true);
-                Intent intent = new Intent(MusicPlayerActivity.this,MusicPlayerActivity.class);
+                Intent intent = new Intent(MusicPlayerActivity.this, MusicPlayerActivity.class);
                 intent.putExtra(SearchManager.QUERY, suggestion);
                 intent.setAction(Intent.ACTION_SEARCH);
                 startActivity(intent);
-                finish();
                 return true;
             }
         });

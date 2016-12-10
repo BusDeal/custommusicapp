@@ -18,6 +18,7 @@ package com.music.android.uamp;
 
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.model.RetrieveType;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -26,8 +27,8 @@ public class TestSetupHelper {
     public static MusicProvider setupMusicProvider(MusicProviderSource source)
             throws Exception {
         final CountDownLatch signal = new CountDownLatch(1);
-        MusicProvider provider = new MusicProvider(source);
-        provider.retrieveMediaAsync(new MusicProvider.Callback() {
+        MusicProvider provider = new MusicProvider(null);
+        provider.retrieveMediaAsync(RetrieveType.DEFAULT,"",new MusicProvider.Callback() {
             @Override
             public void onMusicCatalogReady(boolean success) {
                 signal.countDown();

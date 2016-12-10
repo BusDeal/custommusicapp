@@ -169,9 +169,9 @@ public class MusicProviderTest {
         String musicId = metadata.getDescription().getMediaId();
 
         assertFalse(provider.isFavorite(musicId));
-        provider.setFavorite(musicId, true);
+        provider.setFavorite(musicId,null, true);
         assertTrue(provider.isFavorite(musicId));
-        provider.setFavorite(musicId, false);
+        provider.setFavorite(musicId,null, false);
         assertFalse(provider.isFavorite(musicId));
     }
 

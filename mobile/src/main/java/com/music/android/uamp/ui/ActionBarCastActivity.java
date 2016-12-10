@@ -15,10 +15,13 @@
  */
 package com.music.android.uamp.ui;
 
+import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.FragmentManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.NavigationView;
@@ -31,8 +34,13 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.R;
+import com.music.android.uamp.utils.BitmapHelper;
 import com.music.android.uamp.utils.LogHelper;
 import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.cast.framework.CastContext;
@@ -59,6 +67,8 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
     private static final String TAG = LogHelper.makeLogTag(ActionBarCastActivity.class);
 
     private static final int DELAY_MILLIS = 1000;
+    private static final int MY_SIGNIN_ACTIVITY = 1;
+    private static int MY_ACTIVE_ACTIVITY = 1;
 
     private CastContext mCastContext;
     private MenuItem mMediaRouteMenuItem;
@@ -101,16 +111,19 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                     case R.id.navigation_allmusic:
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        MY_ACTIVE_ACTIVITY=1;
                         break;
                     case R.id.navigation_downloads:
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
                         intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_DOWNLOAD);
+                        MY_ACTIVE_ACTIVITY=2;
                         break;
                     case R.id.navigation_favorites:
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
                         intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_FAVOURITE);
+                        MY_ACTIVE_ACTIVITY=3;
                         break;
                 }
                 if (activityClass != null) {
@@ -289,10 +302,59 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                         return true;
                     }
                 });
-        if (MusicPlayerActivity.class.isAssignableFrom(getClass())) {
-            navigationView.setCheckedItem(R.id.navigation_allmusic);
-            navigationView.setCheckedItem(R.id.navigation_downloads);
-            navigationView.setCheckedItem(R.id.navigation_favorites);
+        switch (MY_ACTIVE_ACTIVITY){
+            case 1:
+                navigationView.setCheckedItem(R.id.navigation_allmusic);
+                break;
+            case 2:
+                navigationView.setCheckedItem(R.id.navigation_downloads);
+                break;
+            case 3:
+                navigationView.setCheckedItem(R.id.navigation_favorites);
+                break;
+        }
+        SharedPreferences sharedPreferences = this.getSharedPreferences("GOOGLE_ACCOUNT", MODE_PRIVATE);
+        String displayName=sharedPreferences.getString("displayName",null);
+        String photoUrl=sharedPreferences.getString("photoUrl",null);
+        final ImageView signIn=(ImageView)navigationView.getHeaderView(0).findViewById(R.id.sign_in);
+        if(signIn != null) {
+            signIn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(ActionBarCastActivity.this, SignInActivity.class);
+                    startActivityForResult(intent,MY_SIGNIN_ACTIVITY);
+                }
+            });
+        }
+        if(displayName != null ) {
+            TextView displayText = (TextView) navigationView.getHeaderView(0).findViewById(R.id.display);
+            displayText.setText(displayName);
+        }
+        if(photoUrl != null){
+            AlbumArtCache.getInstance().fetch(photoUrl, new AlbumArtCache.FetchListener() {
+                @Override
+                public void onFetched(String artUrl, Bitmap bigImage, Bitmap iconImage) {
+                    signIn.setImageBitmap(iconImage);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch(requestCode) {
+            case (MY_SIGNIN_ACTIVITY) : {
+                if (resultCode == Activity.RESULT_OK) {
+                    NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+                    if (navigationView == null) {
+                        throw new IllegalStateException("Layout requires a NavigationView " +
+                                "with id 'nav_view'");
+                    }
+                    populateDrawerItems(navigationView);
+                }
+                break;
+            }
         }
     }
 

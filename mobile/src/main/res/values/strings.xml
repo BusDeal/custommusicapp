@@ -55,4 +55,10 @@
     <string name="media_route_menu_title">Play on…</string>
     <string name="search_label">Search for songs</string>
     <string name="app_label">search</string>
+    <string name="disconnect">disconnect</string>
+    <string name="sign_out">Signout</string>
+    <string name="signed_out">signdout</string>
+    <string name="title_text" />
+    <string name="signed_in_fmt">signin</string>
+    <string name="desc_google_icon">description</string>
 </resources>

@@ -45,7 +45,10 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.AlbumArtCache;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.MusicService;
 import com.music.android.uamp.R;
 import com.music.android.uamp.utils.LogHelper;
@@ -129,6 +132,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 }
             };
     private Boolean isDownLoading = false;
+    private Tracker mTracker;
 
     private void navigateToBrowser(String mediaId) {
         LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
@@ -164,6 +168,9 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("");
         }
+
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
 
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
         mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_pause_white_48dp);
@@ -547,6 +554,14 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
             intent.putExtra("mediaId", item.getDescription().getMediaId());
         }
+
+        mTracker.setScreenName("FullScreenPlayerActivity");
+        mTracker.send(new HitBuilders.EventBuilder()
+                .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                .setAction("play")
+                .setLabel(item.getMediaId())
+                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()),item.getMediaId())
+                .build());
         getSupportMediaController().getTransportControls()
                 .playFromMediaId(item.getMediaId(), null);
         finish();

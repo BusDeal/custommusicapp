@@ -44,4 +44,5 @@
     <dimen name="top_fragment_margin">100dp</dimen>
     <dimen name="imageWidth">150dp</dimen>
     <dimen name="imageHeight">120dp</dimen>
+    <dimen name="g_top_margin">10dp</dimen>
 </resources>
