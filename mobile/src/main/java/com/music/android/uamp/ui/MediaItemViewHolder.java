@@ -22,6 +22,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
@@ -39,6 +40,7 @@ import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.MediaIDHelper;
+import com.pnikosis.materialishprogress.ProgressWheel;
 
 import java.io.File;
 
@@ -65,6 +67,7 @@ public class MediaItemViewHolder {
     TextView mDescriptionView;
     TextView duration;
     ImageView download;
+    private ProgressWheel mProgressWeel;
 
     static View setupView(Activity activity, View convertView, ViewGroup parent,
                           MediaDescriptionCompat description, int state, MediaBrowserCompat mediaBrowser) {
@@ -87,6 +90,7 @@ public class MediaItemViewHolder {
             holder.mDescriptionView = (TextView) convertView.findViewById(R.id.description);
             holder.duration = (TextView) convertView.findViewById(R.id.duration);
             holder.download = (ImageView) convertView.findViewById(R.id.download);
+            holder.mProgressWeel = (ProgressWheel)convertView.findViewById(R.id.progress_wheel);
             if(description.getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
                 holder.download.setVisibility(View.GONE);
             }
@@ -96,7 +100,7 @@ public class MediaItemViewHolder {
             holder = (MediaItemViewHolder) convertView.getTag();
             cachedState = (Integer) convertView.getTag(R.id.tag_mediaitem_state_cache);
         }
-        downloadListner(holder.download,description.getMediaId(),mediaBrowser);
+        downloadListner(holder.download,holder.mProgressWeel,description.getMediaId(),mediaBrowser);
         Long duration=description.getExtras().getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
         String time=DateUtils.formatElapsedTime(duration / 1000);
         holder.duration.setText(time+"");
@@ -140,12 +144,14 @@ public class MediaItemViewHolder {
         return convertView;
     }
 
-    private static void downloadListner(final ImageView mDownLoad, final String mediaId,final MediaBrowserCompat mMediaBrowser){
+    private static void downloadListner(final ImageView mDownLoad, final ProgressWheel progressWheel,final String mediaId,final MediaBrowserCompat mMediaBrowser){
         mDownLoad.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mDownLoad.setImageResource(R.drawable.ic_downloader);
+                //mDownLoad.setImageResource(R.drawable.ic_downloader);
                 mDownLoad.setClickable(false);
+                mDownLoad.setVisibility(View.GONE);
+                progressWheel.setVisibility(View.VISIBLE);
                 String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MEDIA_ID_MUSICS_BY_DOWNLOAD, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
                 mMediaBrowser.getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
                     /**
@@ -169,6 +175,13 @@ public class MediaItemViewHolder {
                         mDownLoad.setImageResource(R.drawable.ic_download);
                     }
                 });
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressWheel.setVisibility(View.GONE);
+                    }
+                }, 15*1000);
             }
         });
     }

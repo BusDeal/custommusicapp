@@ -111,7 +111,7 @@ public class PlaybackManager implements Playback.Callback {
                 @Override
                 protected void onPostExecute(String source) {
                     if(source != null){
-
+                        /*
                         for(String str: source.split("&")){
                             if(str.contains("dur=")){
                                 String duration=str.split("=")[1];
@@ -121,7 +121,7 @@ public class PlaybackManager implements Playback.Callback {
                                         MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),dur.longValue());
                                 break;
                             }
-                        }
+                        }*/
 
                          mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
                                  MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),source);

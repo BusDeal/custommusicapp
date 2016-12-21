@@ -111,6 +111,25 @@ public class DownLoadManager {
         return true;
     }
 
+    public static void removeMedia(Context context,final String musicId){
+        DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        Cursor cursor = manager.query(new DownloadManager.Query());
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            String title = cursor.getString(4);
+            String data[] = title.split("::");
+            if (data.length < 2) {
+                cursor.moveToNext();
+                continue;
+            }
+            String id=cursor.getString(0);
+            String tmpMusicId = data[1];
+            if(tmpMusicId != null && tmpMusicId.equalsIgnoreCase(musicId)){
+                //manager.remove();
+            }
+        }
+    }
+
     public static Map<String, MutableMediaMetadata> getDownloadedMedia(Context context) {
 
         Map<String, MutableMediaMetadata> mMusicListById = new LinkedHashMap<>();
@@ -151,7 +170,9 @@ public class DownLoadManager {
                 Long duration = 0l;
                 if (data.length > 2) {
                     duration = new Long(data[2]);
-                    duration = duration * 1000;
+                    if(duration%1000 != 0){
+                        duration = duration * 1000;
+                    }
                 }
                 String musicId = id;
                 MutableMediaMetadata mediaMetadata = mMusicListById.get(musicId);

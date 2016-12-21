@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <bool name="ga_reportUncaughtExceptions">true</bool>
+    <integer name="ga_dispatchPeriod">600</integer>
+    <!-- Enable automatic Activity measurement -->
+    <bool name="ga_autoActivityTracking">true</bool>
 
+    <!-- The screen names that will appear in reports -->
+    <screenName name="com.music.android.uamp.ui.MusicPlayerActivity">
+        MusicPlayerActivity
+    </screenName>
+    <screenName name="com.music.android.uamp.ui.FullScreenPlayerActivity">
+        AnalyticsSampleApp EcommerceSampleScreen
+    </screenName>
 </PreferenceScreen>

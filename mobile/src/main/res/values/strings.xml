@@ -61,4 +61,5 @@
     <string name="title_text" />
     <string name="signed_in_fmt">signin</string>
     <string name="desc_google_icon">description</string>
+    <string name="current_splash">currentsplash</string>
 </resources>

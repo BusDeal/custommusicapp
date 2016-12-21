@@ -67,4 +67,8 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3.1'
     compile 'com.google.android.gms:play-services-analytics:9.4.0'
     compile 'com.google.android.gms:play-services-auth:9.4.0'
+    compile "org.jsoup:jsoup:1.8.1"
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'com.pnikosis:materialish-progress:1.7'
+
 }

@@ -400,6 +400,7 @@ public class MusicProvider {
     }
 
     public void setFavorite(String musicId, MediaMetadataCompat mediaMetadataCompat, Boolean favorite) {
+        mFavoriteTracks=FavouriteManager.getFavourites();
         if (mediaMetadataCompat != null && favorite) {
             FavouriteManager.addFavouriteItem(musicId,mediaMetadataCompat);
         } else {
@@ -617,6 +618,9 @@ public class MusicProvider {
         // on where the music was selected from (by artist, by genre, random, etc)
 
         String genre = metadata.getString(MediaMetadataCompat.METADATA_KEY_GENRE);
+        if(genre == null){
+            genre="null";
+        }
         if (genre.indexOf("/") > 0) {
             genre = genre.replace("/", "");
         }

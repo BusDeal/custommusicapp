@@ -54,11 +54,12 @@
         <!-- Main activity for music browsing on phone -->
         <activity
             android:name="com.music.android.uamp.ui.MusicPlayerActivity"
-            android:label="@string/app_name">
-            <intent-filter>
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
+            <!--<intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            </intent-filter>-->
 
             <!-- Use this intent filter to get voice searches, like "Play The Beatles" -->
             <intent-filter>
@@ -77,6 +78,14 @@
                 android:resource="@xml/searchable" />
         </activity>
 
+        <activity
+            android:name="com.music.android.uamp.ui.Splash"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <!-- Placeholder activity for phone UI -->
         <activity
             android:name="com.music.android.uamp.ui.PlaceholderActivity"
@@ -170,7 +179,8 @@
             android:name="com.music.android.uamp.ui.FullScreenPlayerActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
-            android:parentActivityName="com.music.android.uamp.ui.MusicPlayerActivity">
+            android:parentActivityName="com.music.android.uamp.ui.MusicPlayerActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.music.android.uamp.ui.MusicPlayerActivity"/>

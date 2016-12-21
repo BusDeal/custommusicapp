@@ -16,11 +16,14 @@
 package com.music.android.uamp.ui;
 
 import android.app.FragmentTransaction;
+import android.app.SearchManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -51,8 +54,10 @@ import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.MusicService;
 import com.music.android.uamp.R;
+import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
+import com.pnikosis.materialishprogress.ProgressWheel;
 
 import java.io.File;
 import java.util.concurrent.Executors;
@@ -133,6 +138,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             };
     private Boolean isDownLoading = false;
     private Tracker mTracker;
+    private ProgressWheel mProgressWeel;
 
     private void navigateToBrowser(String mediaId) {
         LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
@@ -171,13 +177,15 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
-
+        mTracker.setScreenName("FullScreenPlayerActivity") ;
+        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
         mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_pause_white_48dp);
         mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_play_arrow_white_48dp);
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mSkipNext = (ImageView) findViewById(R.id.next);
         mDownLoad = (ImageView) findViewById(R.id.download);
+        mProgressWeel = (ProgressWheel) findViewById(R.id.progress_wheel);
         mSkipPrev = (ImageView) findViewById(R.id.prev);
         mStart = (TextView) findViewById(R.id.startText);
         mEnd = (TextView) findViewById(R.id.endText);
@@ -276,7 +284,8 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     return;
                 }
                 isDownLoading = true;
-                mDownLoad.setImageResource(R.drawable.ic_downloader);
+                mProgressWeel.setVisibility(view.VISIBLE);
+                mDownLoad.setVisibility(View.GONE);
                 String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MEDIA_ID_MUSICS_BY_DOWNLOAD, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
                 mMediaBrowser.getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
                     /**
@@ -302,6 +311,15 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                         isDownLoading = false;
                     }
                 });
+
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        isDownLoading = false;
+                        mProgressWeel.setVisibility(View.GONE);
+                    }
+                }, 15*1000);
             }
         });
         navigateToBrowser(mediaId);
@@ -311,9 +329,17 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        //searchView.setVisibility(View.INVISIBLE);
+        SearchManager searchManager =
+                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView =
                 (SearchView) menu.findItem(R.id.search).getActionView();
-        searchView.setVisibility(View.INVISIBLE);
+        /*ComponentName cn = new ComponentName(this, FullScreenPlayerActivity.class);
+        searchView.setSearchableInfo(
+                searchManager.getSearchableInfo(cn));*/
+
+        SearchSuggestion searchSuggestion=new SearchSuggestion(this,searchView);
+        searchSuggestion.addSearchSuggestions();
         return true;
     }
 

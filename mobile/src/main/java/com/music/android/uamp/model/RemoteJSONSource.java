@@ -46,7 +46,7 @@ public class RemoteJSONSource implements MusicProviderSource {
 
     private static final String TAG = LogHelper.makeLogTag(RemoteJSONSource.class);
 
-    private static String audioUrl = "http://ec2-52-66-15-144.ap-south-1.compute.amazonaws.com:8080/watch?";
+    private static String audioUrl = "http://kmusic.in:8080/watch?";
     private static String duration = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&id=";
     protected static String CATALOG_URL =
             "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&maxResults=20";
@@ -62,17 +62,18 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TRACK_NUMBER = "trackNumber";
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
-    private static String queryList[]={"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs","best 20 songs"};
+    private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs"};
+
     @Override
     public Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType, String... params) {
         try {
             String apiUrl = "";
             if (retrieveType.DEFAULT == retrieveType) {
                 Random r = new Random();
-                int num=r.nextInt(queryList.length);
+                int num = r.nextInt(queryList.length);
                 try {
                     apiUrl = CATALOG_URL + "&q=" + URLEncoder.encode(queryList[num], "utf-8");
-                }catch (UnsupportedEncodingException e) {
+                } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
             } else if (retrieveType.SEARCH == retrieveType) {
@@ -125,9 +126,17 @@ public class RemoteJSONSource implements MusicProviderSource {
         LogHelper.e(TAG, "", audioUrl + "source=" + videoId);
         JSONObject jsonObject = null;
         try {
-            jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
+            CrawlYouTube crawlYouTube = new CrawlYouTube();
+            String data = crawlYouTube.run(videoId);
+            if(data != null) {
+                jsonObject = new JSONObject(data);
+            }else {
+                jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
+            }
             return getAudioUrl(jsonObject);
         } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -142,40 +151,39 @@ public class RemoteJSONSource implements MusicProviderSource {
 
         try {
             String url = duration + URLEncoder.encode(id, "utf-8");
-            JSONObject jsonObject= fetchJSONFromUrl(url);
-            JSONArray jsonArray=jsonObject.getJSONArray("items");
-            for(int i=0;i<jsonArray.length();i++){
-                JSONObject item= jsonArray.getJSONObject(i);
-                String musicid=item.getString("id");
-                JSONObject contentDetails=item.getJSONObject("contentDetails");
-                if(contentDetails != null){
-                    String duration=contentDetails.getString("duration");
+            JSONObject jsonObject = fetchJSONFromUrl(url);
+            JSONArray jsonArray = jsonObject.getJSONArray("items");
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject item = jsonArray.getJSONObject(i);
+                String musicid = item.getString("id");
+                JSONObject contentDetails = item.getJSONObject("contentDetails");
+                if (contentDetails != null) {
+                    String duration = contentDetails.getString("duration");
 
-                    MutableMediaMetadata mutableMediaMetadata=metaData.get(musicid);
+                    MutableMediaMetadata mutableMediaMetadata = metaData.get(musicid);
                     MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder(mutableMediaMetadata.metadata)
                             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, getDuration(duration))
 
                             .build();
-                    mutableMediaMetadata.metadata=mediaMetadataCompat;
-                    metaData.put(musicid,mutableMediaMetadata);
+                    mutableMediaMetadata.metadata = mediaMetadataCompat;
+                    metaData.put(musicid, mutableMediaMetadata);
                 }
             }
         } catch (JSONException e) {
             e.printStackTrace();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             //throw new RuntimeException("Unable to get duration ", e);
         }
     }
 
     public long getDuration(String dur) {
-        String time =dur.substring(2);
+        String time = dur.substring(2);
         long duration = 0L;
         Object[][] indexs = new Object[][]{{"H", 3600}, {"M", 60}, {"S", 1}};
-        for(int i = 0; i < indexs.length; i++) {
+        for (int i = 0; i < indexs.length; i++) {
             int index = time.indexOf((String) indexs[i][0]);
-            if(index != -1) {
+            if (index != -1) {
                 String value = time.substring(0, index);
                 duration += Integer.parseInt(value) * (int) indexs[i][1] * 1000;
                 time = time.substring(value.length() + 1);
@@ -237,7 +245,7 @@ public class RemoteJSONSource implements MusicProviderSource {
         String high = thumbnail.getJSONObject("high").getString("url");
 
 
-            LogHelper.d(TAG, "Found music track: ", json);
+        LogHelper.d(TAG, "Found music track: ", json);
 
         // Media is stored relative to JSON file
         if (!iconUrl.startsWith("http")) {
@@ -282,13 +290,12 @@ public class RemoteJSONSource implements MusicProviderSource {
             int status = httpURLConnection.getResponseCode();
             InputStream in;
             if (status >= 400) {
-                 in = httpURLConnection.getErrorStream();
+                in = httpURLConnection.getErrorStream();
+            } else {
+                in = urlConnection.getInputStream();
             }
-            else{
-                in=urlConnection.getInputStream();
-            }
-            reader = new BufferedReader( new InputStreamReader(
-                   in, "iso-8859-1"));
+            reader = new BufferedReader(new InputStreamReader(
+                    in, "iso-8859-1"));
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {

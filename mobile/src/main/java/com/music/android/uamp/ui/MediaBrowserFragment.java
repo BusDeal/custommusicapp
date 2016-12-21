@@ -16,6 +16,7 @@
 package com.music.android.uamp.ui;
 
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -35,6 +36,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Interpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
@@ -44,6 +46,9 @@ import com.baoyz.swipemenulistview.SwipeMenu;
 import com.baoyz.swipemenulistview.SwipeMenuCreator;
 import com.baoyz.swipemenulistview.SwipeMenuItem;
 import com.baoyz.swipemenulistview.SwipeMenuListView;
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.LogHelper;
@@ -56,6 +61,7 @@ import java.util.List;
 
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
@@ -155,6 +161,7 @@ public class MediaBrowserFragment extends Fragment {
                     checkForUserVisibleErrors(true);
                 }
             };
+    private Tracker mTracker;
 
 
     @Override
@@ -177,13 +184,13 @@ public class MediaBrowserFragment extends Fragment {
         mBrowserAdapter = new BrowseAdapter(getActivity());
 
         progress = new ProgressDialog(getActivity());
-        progress.setTitle("Loading");
+        //progress.setTitle("Loading");
         progress.setMessage("Loading Music...");
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
         progress.show();
-
-
-        com.baoyz.swipemenulistview.SwipeMenuListView listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
+        AnalyticsApplication application = (AnalyticsApplication) getActivity().getApplication();
+        mTracker =application.getDefaultTracker();
+        final com.baoyz.swipemenulistview.SwipeMenuListView listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
         listView.setAdapter(mBrowserAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -194,12 +201,15 @@ public class MediaBrowserFragment extends Fragment {
             }
         });
 
+
+
         listView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
                 switch (index) {
                     case 0:
-                        addAsFavourite(mBrowserAdapter.getItem(position));
+                        Boolean isFavourite=menu.getViewType() ==1?true:false;
+                        addAsFavourite(mBrowserAdapter.getItem(position),isFavourite);
                         break;
                     case 1:
                         MediaBrowserCompat.MediaItem mediaItem = mBrowserAdapter.getItem(position);
@@ -212,6 +222,7 @@ public class MediaBrowserFragment extends Fragment {
                             if (deleted && artUrl != null && artUrl.startsWith("/") && file.exists()) {
                                 deleted = file.delete();
                             }
+                            //DownloadManager.removeMedia();
                         }
                         mBrowserAdapter.remove(mediaItem);
                         // delete
@@ -239,9 +250,9 @@ public class MediaBrowserFragment extends Fragment {
         return rootView;
     }
 
-    private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem) {
-        String downloadMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaItem.getMediaId()), MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, MediaIDHelper.extractBrowseCategoryValueFromMediaID(MEDIA_ID_MUSICS_BY_VIDEOID));
-        mMediaFragmentListener.getMediaBrowser().getItem(downloadMediaId, new MediaBrowserCompat.ItemCallback() {
+    private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem,Boolean isFavourite) {
+        String favouriteMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaItem.getMediaId()), MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, (!isFavourite)+"");
+        mMediaFragmentListener.getMediaBrowser().getItem(favouriteMediaId, new MediaBrowserCompat.ItemCallback() {
             /**
              * Called when the item has been returned by the browser service.
              *
@@ -249,7 +260,7 @@ public class MediaBrowserFragment extends Fragment {
              */
             @Override
             public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
-
+                onConnected();
             }
 
             /**
@@ -398,12 +409,15 @@ public class MediaBrowserFragment extends Fragment {
 
     private void checkForUserVisibleErrors(boolean forceError) {
 
-        if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))) {
-            return;
-        }
         boolean showError = forceError;
+        if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))) {
+            mErrorMessage.setText("No downloads, Please download songs from All music.");
+        }
+        else if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID))) {
+            mErrorMessage.setText("No Favourites, Please add favourites to this list.");
+        }
         // If offline, message is about the lack of connectivity:
-        if (!NetworkHelper.isOnline(getActivity())) {
+        else if (!NetworkHelper.isOnline(getActivity())) {
             mErrorMessage.setText(R.string.error_no_connection);
             showError = true;
         } else {
@@ -416,6 +430,9 @@ public class MediaBrowserFragment extends Fragment {
                     && controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_ERROR
                     && controller.getPlaybackState().getErrorMessage() != null) {
                 mErrorMessage.setText(controller.getPlaybackState().getErrorMessage());
+                mTracker.send(new HitBuilders.ExceptionBuilder()
+                        .setDescription(controller.getPlaybackState().getErrorMessage().toString())
+                        .build());
                 showError = true;
             } else if (forceError) {
                 // Finally, if the caller requested to show error, show a generic message:

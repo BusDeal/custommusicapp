@@ -17,12 +17,14 @@ package com.music.android.uamp.ui;
 
 import android.app.FragmentTransaction;
 import android.app.SearchManager;
+import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.net.wifi.WifiInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -84,9 +86,8 @@ public class MusicPlayerActivity extends BaseActivity
 
     private Bundle mVoiceSearchParams;
     private SearchView searchView;
-    private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
-    private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
     private Tracker mTracker;
+    private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -96,7 +97,9 @@ public class MusicPlayerActivity extends BaseActivity
         mTracker = application.getDefaultTracker();
         setContentView(R.layout.activity_player);
         initializeToolbar();
-
+        mTracker.setScreenName("MusicPlayerActivity");
+        //mTracker.set("&uid", );
+        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
         initializeFromParams(savedInstanceState, getIntent());
 
 
@@ -113,7 +116,7 @@ public class MusicPlayerActivity extends BaseActivity
         String restoredText = prefs.getString("suggestions", null);
         if (restoredText != null) {
             Gson gson = new Gson();
-            suggestionSelected = gson.fromJson(restoredText, LruCache.class);
+            SearchSuggestion.addSelectedSuggestions( gson.fromJson(restoredText, LruCache.class));
         }
 
     }
@@ -123,7 +126,7 @@ public class MusicPlayerActivity extends BaseActivity
         super.onStop();
         SharedPreferences.Editor editor = getSharedPreferences("MY_SUGGESTIONS", MODE_PRIVATE).edit();
         Gson gson = new Gson();
-        String json = gson.toJson(suggestionSelected);
+        String json = gson.toJson(SearchSuggestion.getSuggestionSelected());
         editor.putString("suggestions", json);
         editor.commit();
     }
@@ -148,7 +151,6 @@ public class MusicPlayerActivity extends BaseActivity
                     item.getDescription());
 
             mTracker.set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId());
-            mTracker.setScreenName("MusicPlayerActivity");
             mTracker.send(new HitBuilders.EventBuilder()
                     .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
                     .setAction("play")
@@ -223,6 +225,7 @@ public class MusicPlayerActivity extends BaseActivity
             // Handle the normal search query case
             // mVoiceSearchParams = intent.getExtras();
             String query = getIntent().getStringExtra(SearchManager.QUERY);
+            this.setSearchQuery(query);
             mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
         } else {
             if (savedInstanceState != null) {
@@ -295,158 +298,13 @@ public class MusicPlayerActivity extends BaseActivity
         ComponentName cn = new ComponentName(this, MusicPlayerActivity.class);
         searchView.setSearchableInfo(
                 searchManager.getSearchableInfo(cn));
-        searchView.setMaxWidth(Integer.MAX_VALUE);
 
-        AutoCompleteTextView searchTextView = (AutoCompleteTextView) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
-        try {
-            Field mCursorDrawableRes = TextView.class.getDeclaredField("mCursorDrawableRes");
-            mCursorDrawableRes.setAccessible(true);
-            mCursorDrawableRes.set(searchTextView, R.drawable.cursor); //This sets the cursor resource ID to 0 or @null which will make it visible on white background
-        } catch (Exception e) {
-        }
-
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(final String query) {
-
-                if (query == null || query.isEmpty()) {
-                    Map<String, Integer> list = suggestionSelected.snapshot();
-                    List<String> items = new ArrayList<String>();
-                    for (String suggestion : list.keySet()) {
-                        items.add(suggestion);
-                    }
-                    loadSearchSuggestions(query, menu, items);
-                    return true;
-                }
-                if (query.length() < 1) {
-                    return false;
-                }
-                List<String> items = suggestionAutoText.get(query);
-                if (items != null) {
-                    loadSearchSuggestions(query, menu, items);
-                    return true;
-                }
-                new AsyncTask<String, Void, JSONArray>() {
-                    @Override
-                    protected JSONArray doInBackground(String... params) {
-                        String searchquery = query;
-                        try {
-                            searchquery = URLEncoder.encode(query, "utf-8");
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                        String url = "http://suggestqueries.google.com/complete/search?hl=en&ds=yt&client=youtube&hjson=t&cp=1&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&format=5&alt=json&q=" + searchquery;
-                        try {
-                            JSONArray jsonArray = RemoteJSONSource.fetchJSONArrayFromUrl(url);
-                            return jsonArray;
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    protected void onPostExecute(JSONArray jsonArray) {
-                        try {
-                            if (jsonArray == null) {
-                                return;
-                            }
-                            JSONArray listArray = jsonArray.getJSONArray(1);
-                            final List<String> items = new ArrayList<String>();
-                            for (int i = 0; i < listArray.length(); i++) {
-                                JSONArray data = listArray.getJSONArray(i);
-                                items.add(data.get(0).toString());
-                            }
-                            suggestionAutoText.put(query, items);
-                            loadSearchSuggestions(query, menu, items);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-
-
-                    }
-                }.execute();
-
-
-                return true;
-
-            }
-
-        });
-
-        searchView.setOnSearchClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Map<String, Integer> list = suggestionSelected.snapshot();
-                List<String> items = new ArrayList<String>();
-                for (String suggestion : list.keySet()) {
-                    items.add(suggestion);
-                }
-                loadSearchSuggestions("", menu, items);
-            }
-        });
-
-
-        searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
-            @Override
-            public boolean onSuggestionSelect(int position) {
-                return true;
-            }
-
-            @Override
-            public boolean onSuggestionClick(int position) {
-                String suggestion = getSuggestion(position);
-                if (!NetworkHelper.isOnline(MusicPlayerActivity.this)) {
-                    searchView.setQuery(suggestion, true);
-                    Toast.makeText(MusicPlayerActivity.this, "Please Check internet connection.", Toast.LENGTH_LONG).show();
-                    return true;
-                }
-                //Integer oldSuggestion = suggestionSelected.get(suggestion);
-                suggestionSelected.put(suggestion, 1);
-                /*if (oldSuggestion == null) {
-                    suggestionSelected.put(suggestion, 1);
-                } else {
-                    suggestionSelected.put(suggestion, oldSuggestion + 1);
-                }*/
-                searchView.setQuery(suggestion, true);
-                Intent intent = new Intent(MusicPlayerActivity.this, MusicPlayerActivity.class);
-                intent.putExtra(SearchManager.QUERY, suggestion);
-                intent.setAction(Intent.ACTION_SEARCH);
-                startActivity(intent);
-                return true;
-            }
-        });
-
+        SearchSuggestion searchSuggestion=new SearchSuggestion(this,searchView);
+        searchSuggestion.addSearchSuggestions();
         return true;
     }
 
-    private String getSuggestion(int position) {
-        Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);
-        return cursor.getString(cursor.getColumnIndex("text"));
-    }
 
-    private void loadSearchSuggestions(String query, Menu menu, List<String> items) {
-
-        String[] columns = new String[]{"_id", "text"};
-        Object[] temp = new Object[]{0, "default"};
-        MatrixCursor cursor = new MatrixCursor(columns);
-        for (int i = 0; i < items.size(); i++) {
-            temp[0] = i;
-            temp[1] = items.get(i);
-            cursor.addRow(temp);
-        }
-
-        //final SearchView search = (SearchView) menu.findItem(R.id.search).getActionView();
-        searchView.setSuggestionsAdapter(new SuggestionsAdapter(searchView, this, cursor, items));
-
-
-    }
 
 
 }

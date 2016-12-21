@@ -35,6 +35,9 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.media.MediaRouter;
 
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.StandardExceptionParser;
+import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.RetrieveType;
 import com.music.android.uamp.playback.CastPlayback;
@@ -57,6 +60,7 @@ import com.google.android.gms.cast.framework.SessionManagerListener;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Map;
 
 import static android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
@@ -159,6 +163,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
     private boolean mIsConnectedToCar;
     private BroadcastReceiver mCarConnectionReceiver;
     private DownLoadManager downloadManager;
+    private Tracker mTracker;
 
     /*
      * (non-Javadoc)
@@ -177,6 +182,11 @@ public class MusicService extends MediaBrowserServiceCompat implements
         mMusicProvider.retrieveMediaAsync(RetrieveType.DEFAULT, null, null /* Callback */);
 
         mPackageValidator = new PackageValidator(this);
+
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
+
+// Build and send exception.
 
         QueueManager queueManager = new QueueManager(mMusicProvider, getResources(),
                 new QueueManager.MetadataUpdateListener() {
@@ -416,6 +426,11 @@ public class MusicService extends MediaBrowserServiceCompat implements
                 });
             }
         } catch (Exception e) {
+            mTracker.send(new HitBuilders.ExceptionBuilder()
+                    .setDescription(new StandardExceptionParser(this, null)
+                            .getDescription(Thread.currentThread().getName(), e))
+                    .setFatal(false)
+                    .build());
             result.sendResult(null);
         }
     }
@@ -446,7 +461,13 @@ public class MusicService extends MediaBrowserServiceCompat implements
             }
         }
         if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
-            mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), true);
+            String tmp=MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId);
+            if(tmp != null && (tmp.equalsIgnoreCase("true") || tmp.equalsIgnoreCase("false"))  ) {
+                Boolean isFavourite = Boolean.parseBoolean(tmp);
+                mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), isFavourite);
+                result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
+                return;
+            }
         }
         result.detach();
     }

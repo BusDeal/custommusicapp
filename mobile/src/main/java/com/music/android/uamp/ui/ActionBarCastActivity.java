@@ -18,6 +18,7 @@ package com.music.android.uamp.ui;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.FragmentManager;
+import android.app.SearchManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -51,6 +52,7 @@ import com.google.android.gms.cast.framework.IntroductoryOverlay;
 import static com.music.android.uamp.ui.tv.TvBrowseActivity.SAVED_MEDIA_ID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 
 /**
  * Abstract activity with toolbar, navigation drawer and cast support. Needs to be extended by
@@ -69,6 +71,7 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
     private static final int DELAY_MILLIS = 1000;
     private static final int MY_SIGNIN_ACTIVITY = 1;
     private static int MY_ACTIVE_ACTIVITY = 1;
+    private String searchQuery;
 
     private CastContext mCastContext;
     private MenuItem mMediaRouteMenuItem;
@@ -111,6 +114,10 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                     case R.id.navigation_allmusic:
                         activityClass = MusicPlayerActivity.class;
                         intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        if(searchQuery != null){
+                            intent.setAction(Intent.ACTION_SEARCH);
+                            intent.putExtra(SearchManager.QUERY,searchQuery);
+                        }
                         MY_ACTIVE_ACTIVITY=1;
                         break;
                     case R.id.navigation_downloads:
@@ -388,5 +395,13 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                     .build();
             overlay.show();
         }
+    }
+
+    public String getSearchQuery() {
+        return searchQuery;
+    }
+
+    public void setSearchQuery(String searchQuery) {
+        this.searchQuery = searchQuery;
     }
 }
