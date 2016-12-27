@@ -205,7 +205,7 @@ public class MediaItemViewHolder {
             }
         }
         if (art != null) {
-            art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
+            //art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
             // if we have the art cached or from the MediaDescription, use it:
             holder.alubmImageview.setImageBitmap(art);
         } else {
@@ -216,14 +216,14 @@ public class MediaItemViewHolder {
                     // sanity check, in case a new fetch request has been done while
                     // the previous hasn't yet returned:
                     if (artUrl.equals(description.getIconUri().toString())) {
-                        bitmap=Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, false);
+                        //bitmap=Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, false);
                         holder.alubmImageview.setImageBitmap(bitmap);
                     }
                 }
 
                 @Override
                 public void onError(String artUrl, Exception e){
-                    Bitmap bm = BitmapFactory.decodeResource(view.getResources(), R.drawable.ic_default);
+                    Bitmap bm = BitmapFactory.decodeResource(view.getResources(), R.drawable.ic_launcher);
                     bm=Bitmap.createScaledBitmap(bm, imageWidth, imageHeight, false);
                     holder.alubmImageview.setImageBitmap(bm);
                 }

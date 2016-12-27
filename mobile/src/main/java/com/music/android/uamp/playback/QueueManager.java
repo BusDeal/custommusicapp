@@ -115,6 +115,13 @@ public class QueueManager {
         return true;
     }
 
+    public MediaSessionCompat.QueueItem getNextItem(){
+        if(mPlayingQueue.size() >= mCurrentIndex){
+            return null;
+        }
+        return mPlayingQueue.get(mCurrentIndex+1);
+    }
+
     public boolean setQueueFromSearch(String query, Bundle extras) {
         List<MediaSessionCompat.QueueItem> queue =
                 QueueHelper.getPlayingQueueFromSearch(query, extras, mMusicProvider);

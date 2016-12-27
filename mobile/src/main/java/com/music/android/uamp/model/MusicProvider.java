@@ -94,7 +94,7 @@ public class MusicProvider {
     }
 
     public MusicProvider(Context context) {
-        this(context, new RemoteJSONSource());
+        this(context, new RemoteJSONSource(context));
     }
 
     public MusicProvider(Context context, MusicProviderSource source) {

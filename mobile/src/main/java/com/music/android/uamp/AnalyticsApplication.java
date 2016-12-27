@@ -17,9 +17,27 @@
 package com.music.android.uamp;
 
 import android.app.Application;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.AsyncTask;
+import android.util.Log;
 
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.Tracker;
+import com.music.android.uamp.model.MusicProvider;
+import com.music.android.uamp.model.RemoteJSONSource;
+import com.parse.Parse;
+import com.parse.ParseException;
+import com.parse.ParseInstallation;
+import com.parse.ParsePush;
+import com.parse.SaveCallback;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This is a subclass of {@link Application} used to provide shared objects for this app, such as
@@ -30,14 +48,85 @@ public class AnalyticsApplication extends Application {
 
     /**
      * Gets the default {@link Tracker} for this {@link Application}.
+     *
      * @return tracker
      */
     synchronized public Tracker getDefaultTracker() {
         if (mTracker == null) {
-            GoogleAnalytics analytics = GoogleAnalytics.getInstance(this);
+
+            GoogleAnalytics  analytics = GoogleAnalytics.getInstance(this);
+            analytics.setLocalDispatchPeriod(30);
+            mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+            mTracker.enableExceptionReporting(true);
+            mTracker.enableAdvertisingIdCollection(true);
+            mTracker.enableAutoActivityTracking(true);
             // To enable debug logging use: adb shell setprop log.tag.GAv4 DEBUG
             mTracker = analytics.newTracker(R.xml.global_tracker);
         }
         return mTracker;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Parse.initialize(this, "XaIUw8Qu5p8vMeTdZ8lTE6WSkRUU7csoD6VaUk5s", "TguUhYS4MizEzl9AMRH2PqXNe7wfShWTDeXMAEAo");
+        // Specify a Activity to handle all pushes by default.
+        //PushService.setDefaultPushCallback(this, MainActivity.class);
+        ParseInstallation.getCurrentInstallation().saveInBackground();
+        Parse.setLogLevel(Parse.LOG_LEVEL_VERBOSE);
+        ParsePush.subscribeInBackground("", new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                String installationId=  ParseInstallation.getCurrentInstallation().getInstallationId();
+                Log.d("com.parse.installId", installationId);
+                if (e == null) {
+                    Log.d("com.parse.push", "successfully subscribed to the broadcast channel.");
+                } else {
+                    Log.e("com.parse.push", "failed to subscribe for push", e);
+                }
+            }
+        });
+
+        PackageInfo pInfo = null;
+        try {
+            pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            final int verCode = pInfo.versionCode;
+            final String version = pInfo.versionName;
+            new AsyncTask<Void, Void, JSONObject>() {
+
+                @Override
+                protected JSONObject doInBackground(Void... voids) {
+                    try {
+                        JSONObject jsonObject = RemoteJSONSource.fetchJSONFromUrl("http://kmusic.in:8080/versions/?buildVersion=" + version);
+                        return jsonObject;
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(JSONObject jsonObject) {
+                    if (jsonObject != null) {
+                        SharedPreferences.Editor editor = getApplicationContext().getSharedPreferences("versions", MODE_PRIVATE).edit();
+                        try {
+                            editor.putBoolean("isForceUpdateRequired", jsonObject.getBoolean("isForceUpdateRequired"));
+                            editor.putBoolean("isPartialUpdateRequired", jsonObject.getBoolean("isPartialUpdateRequired"));
+                            editor.commit();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };//.execute();
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+
+        }
     }
 }

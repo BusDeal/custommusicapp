@@ -33,7 +33,7 @@ limitations under the License.
         <ImageView
             android:id="@+id/background_image"
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_height="match_parent"
             android:contentDescription="@string/background_image_str"
             android:scaleType="fitCenter" />
 

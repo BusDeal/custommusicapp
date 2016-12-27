@@ -9,7 +9,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.widget.ImageView;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.music.android.uamp.R;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Splash extends Activity {
 
@@ -48,10 +52,43 @@ public class Splash extends Activity {
 		new Handler().postDelayed(new Runnable() {
 			@Override
 			public void run() {
-				/* Create an Intent that will start the Menu-Activity. */
-				Intent mainIntent = new Intent(Splash.this, MusicPlayerActivity.class);
-				Splash.this.startActivity(mainIntent);
-				Splash.this.finish();
+				SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("languageSelection", MODE_PRIVATE);
+				Boolean isLanguageSelected = sharedPreferences.getBoolean("isLanguageSelected", false);
+				if (!isLanguageSelected) {
+					final Set<String> languageSelectionList = new HashSet<>();
+					new MaterialDialog.Builder(Splash.this)
+							.title(R.string.langselection)
+							.items(R.array.items)
+							.canceledOnTouchOutside(false)
+							.itemsCallbackMultiChoice(null, new MaterialDialog.ListCallbackMultiChoice() {
+								@Override
+								public boolean onSelection(MaterialDialog dialog, Integer[] which, CharSequence[] text) {
+									languageSelectionList.clear();
+									for (CharSequence language : text) {
+										languageSelectionList.add(language.toString());
+									}
+									if (!languageSelectionList.isEmpty()) {
+										SharedPreferences.Editor editor = getApplicationContext().getSharedPreferences("languageSelection", MODE_PRIVATE).edit();
+										editor.putStringSet("languageSelectionSet", languageSelectionList);
+										editor.putBoolean("isLanguageSelected", true);
+										editor.commit();
+									}
+									/* Create an Intent that will start the Menu-Activity. */
+									Intent mainIntent = new Intent(Splash.this, MusicPlayerActivity.class);
+									Splash.this.startActivity(mainIntent);
+									Splash.this.finish();
+									return true;
+								}
+
+							})
+							.positiveText(R.string.choose)
+							.show();
+				}else {
+					/* Create an Intent that will start the Menu-Activity. */
+					Intent mainIntent = new Intent(Splash.this, MusicPlayerActivity.class);
+					Splash.this.startActivity(mainIntent);
+					Splash.this.finish();
+				}
 			}
 		}, SPLASH_DISPLAY_LENGHT);
 	}

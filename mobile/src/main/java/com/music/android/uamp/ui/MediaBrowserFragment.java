@@ -441,7 +441,7 @@ public class MediaBrowserFragment extends Fragment {
             }
         }
         mErrorView.setVisibility(showError ? View.VISIBLE : View.GONE);
-        LogHelper.e(TAG, "checkForUserVisibleErrors. forceError=", forceError,
+        LogHelper.d(TAG, "checkForUserVisibleErrors. forceError=", forceError,
                 " showError=", showError,
                 " isOnline=", NetworkHelper.isOnline(getActivity()));
     }

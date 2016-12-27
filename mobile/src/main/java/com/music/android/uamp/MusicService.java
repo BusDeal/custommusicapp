@@ -35,6 +35,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.media.MediaRouter;
 
+import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.StandardExceptionParser;
 import com.google.android.gms.analytics.Tracker;
@@ -183,8 +184,12 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
         mPackageValidator = new PackageValidator(this);
 
-        AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        mTracker = application.getDefaultTracker();
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
+        analytics.setLocalDispatchPeriod(30);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
 
 // Build and send exception.
 

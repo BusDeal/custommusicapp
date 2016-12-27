@@ -81,15 +81,15 @@ public class PlaybackManager implements Playback.Callback {
 
             //noinspection ResourceType
             String source = track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
-            if(source != null){
+            if (source != null) {
                 mServiceCallback.onPlaybackStart();
                 mPlayback.play(currentMusic);
-            }else {
+            } else {
                 mPlayback.setState(PlaybackStateCompat.STATE_CONNECTING);
                 this.onPlaybackStatusChanged(PlaybackStateCompat.STATE_CONNECTING);
-                if(NetworkHelper.isOnline(mMusicProvider.getContext())) {
+                if (NetworkHelper.isOnline(mMusicProvider.getContext())) {
                     getAudioUrlAndPlay(currentMusic);
-                }else{
+                } else {
                     mQueueManager.updateMetadata();
                     mMediaSessionCallback.onStop();
                     PlaybackManager.this.onError("Please connect to internet to play for this song");
@@ -98,19 +98,48 @@ public class PlaybackManager implements Playback.Callback {
         }
     }
 
-    public void getAudioUrlAndPlay(final  MediaSessionCompat.QueueItem currentMusic){
+    public void getNextQueueItemAudioUrlAndUpdate() {
+        new AsyncTask<String, Void, String>() {
+            @Override
+            protected String doInBackground(String... params) {
 
-            //progressDialog= ProgressDialog.show(MusicPlayerActivity.this, "", "Playing...");
-            new AsyncTask<String, Void, String>() {
-                @Override
-                protected String doInBackground(String... params) {
-                    return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
-
+                try {
+                    Thread.sleep(2 * 60 * 1000); // sleep for 2 minutes
+                } catch (InterruptedException e) {
                 }
+                final MediaSessionCompat.QueueItem item=mQueueManager.getNextItem();
+                if (item == null) {
+                    return null;
+                }
+                return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()));
 
-                @Override
-                protected void onPostExecute(String source) {
-                    if(source != null){
+            }
+
+            @Override
+            protected void onPostExecute(String source) {
+                if (source != null) {
+                    final MediaSessionCompat.QueueItem item=mQueueManager.getNextItem();
+                    mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
+                            MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()), source);
+                }
+            }
+        }.execute();
+
+    }
+
+    public void getAudioUrlAndPlay(final MediaSessionCompat.QueueItem currentMusic) {
+
+        //progressDialog= ProgressDialog.show(MusicPlayerActivity.this, "", "Playing...");
+        new AsyncTask<String, Void, String>() {
+            @Override
+            protected String doInBackground(String... params) {
+                return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
+
+            }
+
+            @Override
+            protected void onPostExecute(String source) {
+                if (source != null) {
                         /*
                         for(String str: source.split("&")){
                             if(str.contains("dur=")){
@@ -123,21 +152,22 @@ public class PlaybackManager implements Playback.Callback {
                             }
                         }*/
 
-                         mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
-                                 MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),source);
-                        mPlayback.play(currentMusic);
-                        mServiceCallback.onPlaybackStart();
-                        LogHelper.e(TAG, source);
+                    mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
+                            MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source);
+                    mPlayback.play(currentMusic);
+                    mServiceCallback.onPlaybackStart();
+                    //getNextQueueItemAudioUrlAndUpdate();
+                    LogHelper.e(TAG, source);
 
 
-                    }else{
-                        mQueueManager.updateMetadata();
-                        mMediaSessionCallback.onStop();
-                        PlaybackManager.this.onError("Youtube is restricting this song to download as of now, Please try playing different song");
-                    }
-
+                } else {
+                    mQueueManager.updateMetadata();
+                    mMediaSessionCallback.onStop();
+                    PlaybackManager.this.onError("Youtube is restricting this song to download as of now, Please try playing different song");
                 }
-            }.execute();
+
+            }
+        }.execute();
 
     }
 
@@ -236,10 +266,10 @@ public class PlaybackManager implements Playback.Callback {
     private long getAvailableActions() {
         long actions =
                 PlaybackStateCompat.ACTION_PLAY |
-                PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
-                PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH |
-                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-                PlaybackStateCompat.ACTION_SKIP_TO_NEXT;
+                        PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
+                        PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH |
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT;
         if (mPlayback.isPlaying()) {
             actions |= PlaybackStateCompat.ACTION_PAUSE;
         }
@@ -399,7 +429,7 @@ public class PlaybackManager implements Playback.Callback {
                     String mediaId = currentMusic.getDescription().getMediaId();
                     if (mediaId != null) {
                         String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
-                        mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId),true);
+                        mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), true);
                     }
                 }
                 // playback state needs to be updated because the "Favorite" icon on the

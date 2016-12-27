@@ -16,8 +16,15 @@
 
 package com.music.android.uamp.model;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.support.v4.media.MediaMetadataCompat;
 
+import com.google.android.gms.analytics.GoogleAnalytics;
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.StandardExceptionParser;
+import com.google.android.gms.analytics.Tracker;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.utils.LogHelper;
 
 import org.json.JSONArray;
@@ -34,9 +41,13 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Utility class to get a list of MusicTrack's based on a server-side JSON
@@ -63,16 +74,39 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
     private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs"};
+    private final Tracker mTracker;
+    private Context context;
+
+    public RemoteJSONSource(Context context) {
+        this.context = context;
+        GoogleAnalytics  analytics = GoogleAnalytics.getInstance(context);
+        analytics.setLocalDispatchPeriod(30);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
+        //mTracker = application.getDefaultTracker();
+    }
 
     @Override
     public Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType, String... params) {
         try {
+            SharedPreferences sharedPreferences = context.getSharedPreferences("languageSelection", MODE_PRIVATE);
+            Boolean isLanguageSelected = sharedPreferences.getBoolean("isLanguageSelected", false);
+            Set<String> language = new HashSet<>();
+            if (isLanguageSelected) {
+                language = sharedPreferences.getStringSet("languageSelectionSet", language);
+            }
             String apiUrl = "";
             if (retrieveType.DEFAULT == retrieveType) {
                 Random r = new Random();
                 int num = r.nextInt(queryList.length);
                 try {
-                    apiUrl = CATALOG_URL + "&q=" + URLEncoder.encode(queryList[num], "utf-8");
+                    String query = queryList[num];
+                    if (!language.isEmpty()) {
+                        query = getRandomLang(language) + " " + query;
+                    }
+                    apiUrl = CATALOG_URL + "&q=" + URLEncoder.encode(query, "utf-8");
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -117,7 +151,26 @@ public class RemoteJSONSource implements MusicProviderSource {
         } catch (JSONException e) {
             LogHelper.e(TAG, e, "Could not retrieve music list");
             throw new RuntimeException("Could not retrieve music list", e);
+        } catch (Exception e){
+            mTracker.send(new HitBuilders.ExceptionBuilder()
+                    .setDescription(new StandardExceptionParser(this.context, null)
+                            .getDescription(Thread.currentThread().getName(), e))
+                    .setFatal(false)
+                    .build());
+            throw new RuntimeException("Could not retrieve music list", e);
         }
+    }
+
+    private String getRandomLang(Set<String> myHashSet) {
+        int size = myHashSet.size();
+        int item = new Random().nextInt(size);
+        int i = 0;
+        for (String obj : myHashSet) {
+            if (i == item)
+                return obj;
+            i = i + 1;
+        }
+        return null;
     }
 
     @Override
@@ -128,15 +181,30 @@ public class RemoteJSONSource implements MusicProviderSource {
         try {
             CrawlYouTube crawlYouTube = new CrawlYouTube();
             String data = crawlYouTube.run(videoId);
-            if(data != null) {
+            if (data != null) {
                 jsonObject = new JSONObject(data);
-            }else {
+            } else {
+                mTracker.send(new HitBuilders.EventBuilder()
+                        .setCategory("server")
+                        .setAction("audioUrl")
+                        .setLabel(videoId)
+                        .build());
                 jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
             }
             return getAudioUrl(jsonObject);
         } catch (JSONException e) {
+            mTracker.send(new HitBuilders.ExceptionBuilder()
+                    .setDescription(new StandardExceptionParser(this.context, null)
+                            .getDescription(Thread.currentThread().getName(), e))
+                    .setFatal(false)
+                    .build());
             e.printStackTrace();
         } catch (Exception e) {
+            mTracker.send(new HitBuilders.ExceptionBuilder()
+                    .setDescription(new StandardExceptionParser(this.context, null)
+                            .getDescription(Thread.currentThread().getName(), e))
+                    .setFatal(false)
+                    .build());
             e.printStackTrace();
         }
         return null;

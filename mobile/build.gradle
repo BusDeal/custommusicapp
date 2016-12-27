@@ -16,9 +16,16 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'myfirstappkey'
+            keyPassword 'babu512'
+            storeFile file('/home/sagar/Documents/freemp3.jks')
+            storePassword 'babu512'
+        }
+    }
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
-
     defaultConfig {
         applicationId "com.music.android.uamp"
         minSdkVersion 17
@@ -49,6 +56,9 @@ repositories {
 }
 
 dependencies {
+    configurations.all {
+        resolutionStrategy.force 'com.android.support:support-annotations:23.4.0'
+    }
     compile 'com.google.android.gms:play-services-cast-framework:9.4.0'
     compile 'com.google.android.support:wearable:1.3.0'
     compile 'com.android.support:appcompat-v7:23.4.0'
@@ -67,8 +77,10 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3.1'
     compile 'com.google.android.gms:play-services-analytics:9.4.0'
     compile 'com.google.android.gms:play-services-auth:9.4.0'
-    compile "org.jsoup:jsoup:1.8.1"
+    compile 'org.jsoup:jsoup:1.8.1'
     compile 'org.apache.commons:commons-lang3:3.4'
     compile 'com.pnikosis:materialish-progress:1.7'
-
+    compile 'com.afollestad.material-dialogs:core:0.9.1.0'
+    compile 'com.parse.bolts:bolts-android:1.+'
+    compile 'com.parse:parse-android:1.+'
 }

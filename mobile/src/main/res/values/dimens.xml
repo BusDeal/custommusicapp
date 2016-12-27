@@ -30,8 +30,8 @@
     <dimen name="drawer_item_horizontal_padding">16dp</dimen>
 
     <!-- media browser listview -->
-    <dimen name="media_item_height">100dp</dimen>
-    <dimen name="media_item_icon_margin_start">10dp</dimen>
+    <dimen name="media_item_height">180dp</dimen>
+    <dimen name="media_item_icon_margin_start">5dp</dimen>
     <dimen name="media_item_text_margin_start">10dp</dimen>
     <!-- Margins for the ShowcaseView button -->
     <dimen name="button_margin">50dp</dimen>
@@ -42,7 +42,7 @@
     <dimen name="x_scale_factor">100dp</dimen>
     <dimen name="y_scale_factor">100dp</dimen>
     <dimen name="top_fragment_margin">100dp</dimen>
-    <dimen name="imageWidth">150dp</dimen>
-    <dimen name="imageHeight">120dp</dimen>
+    <dimen name="imageWidth">200dp</dimen>
+    <dimen name="imageHeight">220dp</dimen>
     <dimen name="g_top_margin">10dp</dimen>
 </resources>

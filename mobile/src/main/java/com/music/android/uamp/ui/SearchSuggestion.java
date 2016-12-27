@@ -14,8 +14,13 @@ import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.analytics.GoogleAnalytics;
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.RemoteJSONSource;
+import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
 
 import org.json.JSONArray;
@@ -36,6 +41,7 @@ public class SearchSuggestion {
 
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
     private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
+    private final Tracker mTracker;
 
     private SearchView searchView;
     private Context context;
@@ -43,6 +49,12 @@ public class SearchSuggestion {
     public SearchSuggestion(Context context, SearchView searchView) {
         this.searchView = searchView;
         this.context = context;
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+        analytics.setLocalDispatchPeriod(30);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
     }
 
     public static void addSelectedSuggestions(LruCache<String, Integer> suggestionSelected) {
@@ -171,6 +183,11 @@ public class SearchSuggestion {
                 } else {
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
                 }*/
+                mTracker.send(new HitBuilders.EventBuilder()
+                        .setCategory("Global Search")
+                        .setAction("search")
+                        .setLabel(suggestion)
+                        .build());
                 searchView.setQuery(suggestion, true);
                 Intent intent = new Intent(context, MusicPlayerActivity.class);
                 intent.putExtra(SearchManager.QUERY, suggestion);

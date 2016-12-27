@@ -54,6 +54,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
     public static final String ACTION_PLAY = "com.music.android.uamp.play";
     public static final String ACTION_PREV = "com.music.android.uamp.prev";
     public static final String ACTION_NEXT = "com.music.android.uamp.next";
+    public static final String ACTION_LOAD = "com.music.android.uamp.loading";
     public static final String ACTION_STOP_CASTING = "com.music.android.uamp.stop_cast";
 
     private final MusicService mService;
@@ -70,6 +71,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
     private final PendingIntent mPlayIntent;
     private final PendingIntent mPreviousIntent;
     private final PendingIntent mNextIntent;
+    private final PendingIntent mLoadIntent;
 
     private final PendingIntent mStopCastIntent;
 
@@ -91,6 +93,8 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 new Intent(ACTION_PAUSE).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
         mPlayIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
                 new Intent(ACTION_PLAY).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
+        mLoadIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
+                new Intent(ACTION_LOAD).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
         mPreviousIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
                 new Intent(ACTION_PREV).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
         mNextIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
@@ -122,6 +126,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 filter.addAction(ACTION_NEXT);
                 filter.addAction(ACTION_PAUSE);
                 filter.addAction(ACTION_PLAY);
+                filter.addAction(ACTION_LOAD);
                 filter.addAction(ACTION_PREV);
                 filter.addAction(ACTION_STOP_CASTING);
                 mService.registerReceiver(this, filter);
@@ -324,7 +329,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
 
         setNotificationPlaybackState(notificationBuilder);
         if (fetchArtUrl != null) {
-            fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
+            //fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
         }
 
         return notificationBuilder.build();
@@ -362,7 +367,10 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 .setWhen(System.currentTimeMillis() - mPlaybackState.getPosition())
                 .setShowWhen(true)
                 .setUsesChronometer(true);
-        } else {
+        } else if( mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING){
+
+        }
+        else {
             LogHelper.d(TAG, "updateNotificationPlaybackState. hiding playback position");
             builder
                 .setWhen(0)

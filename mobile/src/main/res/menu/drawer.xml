@@ -29,5 +29,10 @@
             android:id="@+id/navigation_favorites"
             android:icon="@drawable/ic_favorite"
             android:title="@string/drawer_favorites_title"/>
+
+        <item
+            android:id="@+id/navigation_feedback"
+            android:icon="@drawable/ic_feedback_black"
+            android:title="@string/drawer_feedback_title"/>
     </group>
 </menu>

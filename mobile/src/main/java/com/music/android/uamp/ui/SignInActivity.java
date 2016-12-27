@@ -141,7 +141,9 @@ public class SignInActivity extends AppCompatActivity implements
             editor.putString("idToken",acct.getIdToken());
             editor.putString("serverAuthCode",acct.getServerAuthCode());
             editor.putString("givenName",acct.getGivenName());
-            editor.putString("photoUrl",acct.getPhotoUrl().toString());
+            if(acct.getPhotoUrl() != null) {
+                editor.putString("photoUrl", acct.getPhotoUrl().toString());
+            }
             editor.commit();
 
         } else {

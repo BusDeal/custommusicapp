@@ -16,6 +16,7 @@
 package com.music.android.uamp.ui;
 
 import android.app.FragmentTransaction;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -28,6 +29,7 @@ import android.net.wifi.WifiInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
@@ -38,6 +40,8 @@ import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.afollestad.materialdialogs.DialogAction;
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.AnalyticsApplication;
@@ -55,9 +59,13 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
 
 /**
@@ -92,14 +100,26 @@ public class MusicPlayerActivity extends BaseActivity
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_player);
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("versions", MODE_PRIVATE);
+        try {
+            Boolean isForceUpdateRequired = sharedPreferences.getBoolean("isForceUpdateRequired", false);
+            Boolean isPartialUpdateRequired = sharedPreferences.getBoolean("isPartialUpdateRequired", false);
+            if (isPartialUpdateRequired) {
+                ProgressDialog progress = new ProgressDialog(this);
+                progress.setMessage("Please update to latest version");
+                progress.setCancelable(true); // disable dismiss by tapping outside of the dialog
+                progress.show();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         LogHelper.d(TAG, "Activity onCreate");
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
-        setContentView(R.layout.activity_player);
         initializeToolbar();
-        mTracker.setScreenName("MusicPlayerActivity");
-        //mTracker.set("&uid", );
-        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
+
         initializeFromParams(savedInstanceState, getIntent());
 
 
@@ -116,7 +136,7 @@ public class MusicPlayerActivity extends BaseActivity
         String restoredText = prefs.getString("suggestions", null);
         if (restoredText != null) {
             Gson gson = new Gson();
-            SearchSuggestion.addSelectedSuggestions( gson.fromJson(restoredText, LruCache.class));
+            SearchSuggestion.addSelectedSuggestions(gson.fromJson(restoredText, LruCache.class));
         }
 
     }
@@ -225,9 +245,10 @@ public class MusicPlayerActivity extends BaseActivity
             // Handle the normal search query case
             // mVoiceSearchParams = intent.getExtras();
             String query = getIntent().getStringExtra(SearchManager.QUERY);
-            this.setSearchQuery(query);
+            ActionBarCastActivity.searchQuery = query;
             mediaId = MediaIDHelper.createMediaID(null, MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH, query);
         } else {
+            ActionBarCastActivity.searchQuery = null;
             if (savedInstanceState != null) {
                 // If there is a saved media ID, use it
                 mediaId = savedInstanceState.getString(SAVED_MEDIA_ID);
@@ -254,7 +275,7 @@ public class MusicPlayerActivity extends BaseActivity
             transaction.replace(R.id.container, fragment, FRAGMENT_TAG);
             // If this is not the top level media (root), we add it to the fragment back stack,
             // so that actionbar toggle and Back will work appropriately:
-            if (mediaId != null) {
+            if (mediaId != null && !(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_ROOT) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE))) {
                 transaction.addToBackStack(null);
             }
             transaction.commit();
@@ -299,12 +320,10 @@ public class MusicPlayerActivity extends BaseActivity
         searchView.setSearchableInfo(
                 searchManager.getSearchableInfo(cn));
 
-        SearchSuggestion searchSuggestion=new SearchSuggestion(this,searchView);
+        SearchSuggestion searchSuggestion = new SearchSuggestion(this, searchView);
         searchSuggestion.addSearchSuggestions();
         return true;
     }
-
-
 
 
 }

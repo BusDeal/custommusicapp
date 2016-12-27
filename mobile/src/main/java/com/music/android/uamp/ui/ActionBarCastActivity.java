@@ -71,7 +71,7 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
     private static final int DELAY_MILLIS = 1000;
     private static final int MY_SIGNIN_ACTIVITY = 1;
     private static int MY_ACTIVE_ACTIVITY = 1;
-    private String searchQuery;
+    public static String searchQuery;
 
     private CastContext mCastContext;
     private MenuItem mMediaRouteMenuItem;
@@ -132,6 +132,15 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                         intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_FAVOURITE);
                         MY_ACTIVE_ACTIVITY=3;
                         break;
+
+                    case R.id.navigation_feedback:
+                        Intent Email = new Intent(Intent.ACTION_SEND);
+                        Email.setType("text/email");
+                        Email.putExtra(Intent.EXTRA_EMAIL, new String[] { "vidyasagarkota@gmail.com" });
+                        Email.putExtra(Intent.EXTRA_SUBJECT, "Songs Feedback");
+                        Email.putExtra(Intent.EXTRA_TEXT, "Hi," + "");
+                        startActivity(Intent.createChooser(Email, "Send Feedback:"));
+                        return;
                 }
                 if (activityClass != null) {
                     startActivity(intent, extras);
@@ -319,6 +328,8 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
             case 3:
                 navigationView.setCheckedItem(R.id.navigation_favorites);
                 break;
+            case 4:
+                navigationView.setCheckedItem(R.id.navigation_feedback);
         }
         SharedPreferences sharedPreferences = this.getSharedPreferences("GOOGLE_ACCOUNT", MODE_PRIVATE);
         String displayName=sharedPreferences.getString("displayName",null);
@@ -401,7 +412,4 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
         return searchQuery;
     }
 
-    public void setSearchQuery(String searchQuery) {
-        this.searchQuery = searchQuery;
-    }
 }

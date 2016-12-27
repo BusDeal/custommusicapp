@@ -16,7 +16,7 @@
   -->
 <resources>
 
-    <string name="app_name">Jukebox</string>
+    <string name="app_name">FreeMp3</string>
     <string name="favorite">Favorite</string>
     <string name="error_no_metadata">Unable to retrieve metadata.</string>
     <string name="browse_genres">Genres</string>
@@ -47,6 +47,7 @@
     <string name="drawer_allmusic_title">All Music</string>
     <string name="drawer_playlists_title">Downloads</string>
     <string name="drawer_favorites_title">Favorites</string>
+    <string name="drawer_feedback_title">Feedback</string>
     <string name="now_playing">Now Playing</string>
     <string name="background_image_str">Background image for album art</string>
     <string name="search_queue_title">Search results</string>
@@ -62,4 +63,6 @@
     <string name="signed_in_fmt">signin</string>
     <string name="desc_google_icon">description</string>
     <string name="current_splash">currentsplash</string>
+    <string name="langselection">Please select language</string>
+    <string name="choose">choose</string>
 </resources>
