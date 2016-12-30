@@ -5,7 +5,7 @@
     <string name="ga_logLevel">verbose</string>
 
     <!-- how often the dispatcher should fire -->
-    <integer name="ga_dispatchPeriod">60</integer>
+    <integer name="ga_dispatchPeriod">600</integer>
 
     <!-- Send hits to Google Analytics. true = don't send -->
     <bool name="ga_dryRun">false</bool>

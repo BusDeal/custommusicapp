@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.support.v4.media.MediaMetadataCompat;
 
+import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.model.MutableMediaMetadata;
@@ -46,20 +47,7 @@ public class DownLoadManager {
         return false;
     }
 
-    public void getAudioUrlAndDownLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
-        new AsyncTask<String, Void, String>() {
-            @Override
-            protected String doInBackground(String... params) {
-                return musicProvider.getSourceUrl(musicId);
 
-            }
-
-            @Override
-            protected void onPostExecute(String source) {
-                DownLoadManager.this.downLoad(source, broadcastReceiver);
-            }
-        }.execute();
-    }
 
     public Boolean downLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
 
@@ -68,20 +56,20 @@ public class DownLoadManager {
         if (downloadedMedia.containsKey(musicId)) {
             return false;
         }
-        new AsyncTask<String, Void, String>() {
+        new AsyncTask<String, Void, AudioMetaData>() {
             @Override
-            protected String doInBackground(String... params) {
+            protected AudioMetaData doInBackground(String... params) {
                 return musicProvider.getSourceUrl(musicId);
 
             }
 
             @Override
-            protected void onPostExecute(String source) {
+            protected void onPostExecute(AudioMetaData source) {
                 if (source == null) {
                     return;
                 }
                 MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(musicId);
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(source));
+                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(source.getUrl()));
                 request.setDescription(mediaMetadataCompat.getDescription().getDescription());
                 request.setTitle(mediaMetadataCompat.getDescription().getTitle() + "::" + musicId + "::" + mediaMetadataCompat.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
                 request.setMimeType("audio");

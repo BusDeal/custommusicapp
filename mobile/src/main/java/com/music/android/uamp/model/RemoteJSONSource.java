@@ -26,6 +26,7 @@ import com.google.android.gms.analytics.StandardExceptionParser;
 import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.utils.LogHelper;
+import com.music.android.uamp.utils.ParserHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +44,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -79,7 +81,7 @@ public class RemoteJSONSource implements MusicProviderSource {
 
     public RemoteJSONSource(Context context) {
         this.context = context;
-        GoogleAnalytics  analytics = GoogleAnalytics.getInstance(context);
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
         analytics.setLocalDispatchPeriod(30);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
         mTracker.enableExceptionReporting(true);
@@ -151,7 +153,7 @@ public class RemoteJSONSource implements MusicProviderSource {
         } catch (JSONException e) {
             LogHelper.e(TAG, e, "Could not retrieve music list");
             throw new RuntimeException("Could not retrieve music list", e);
-        } catch (Exception e){
+        } catch (Exception e) {
             mTracker.send(new HitBuilders.ExceptionBuilder()
                     .setDescription(new StandardExceptionParser(this.context, null)
                             .getDescription(Thread.currentThread().getName(), e))
@@ -174,13 +176,15 @@ public class RemoteJSONSource implements MusicProviderSource {
     }
 
     @Override
-    public String getAudioSourceUrl(String videoId) {
+    public AudioMetaData getAudioSourceUrl(String videoId) {
 
         LogHelper.e(TAG, "", audioUrl + "source=" + videoId);
         JSONObject jsonObject = null;
         try {
+            Long currentTimeMilisec = System.currentTimeMillis();
             CrawlYouTube crawlYouTube = new CrawlYouTube();
             String data = crawlYouTube.run(videoId);
+            LogHelper.e("Tag","Total time took to crawl " + (System.currentTimeMillis() - currentTimeMilisec) / 1000);
             if (data != null) {
                 jsonObject = new JSONObject(data);
             } else {
@@ -230,7 +234,7 @@ public class RemoteJSONSource implements MusicProviderSource {
 
                     MutableMediaMetadata mutableMediaMetadata = metaData.get(musicid);
                     MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder(mutableMediaMetadata.metadata)
-                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, getDuration(duration))
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, ParserHelper.getDuration(duration))
 
                             .build();
                     mutableMediaMetadata.metadata = mediaMetadataCompat;
@@ -245,32 +249,32 @@ public class RemoteJSONSource implements MusicProviderSource {
         }
     }
 
-    public long getDuration(String dur) {
-        String time = dur.substring(2);
-        long duration = 0L;
-        Object[][] indexs = new Object[][]{{"H", 3600}, {"M", 60}, {"S", 1}};
-        for (int i = 0; i < indexs.length; i++) {
-            int index = time.indexOf((String) indexs[i][0]);
-            if (index != -1) {
-                String value = time.substring(0, index);
-                duration += Integer.parseInt(value) * (int) indexs[i][1] * 1000;
-                time = time.substring(value.length() + 1);
-            }
-        }
-        return duration;
-    }
 
-    private String getAudioUrl(JSONObject jsonObject) {
+    private AudioMetaData getAudioUrl(JSONObject jsonObject) {
         try {
+            AudioMetaData audioMetaData = new AudioMetaData();
             JSONArray jsonTracks = jsonObject.getJSONArray("urls");
             if (jsonTracks != null) {
                 for (int j = 0; j < jsonTracks.length(); j++) {
                     JSONObject data = jsonTracks.getJSONObject(j);
                     if (data.getString("url").contains("audio")) {
-                        return data.getString("url");
+                        audioMetaData.setUrl(data.getString("url"));
+                        break;
                     }
                 }
             }
+            if (jsonObject.has("durations")) {
+                jsonTracks = jsonObject.getJSONArray("durations");
+                List<Long> durations = new ArrayList<>();
+                if (jsonTracks != null) {
+                    for (int j = 0; j < jsonTracks.length(); j++) {
+                        Long data = jsonTracks.getLong(j);
+                        durations.add(data);
+                    }
+                }
+                audioMetaData.setDurations(durations);
+            }
+            return audioMetaData;
         } catch (Exception e) {
             e.printStackTrace();
         }

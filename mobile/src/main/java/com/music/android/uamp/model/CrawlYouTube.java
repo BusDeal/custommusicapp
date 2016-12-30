@@ -6,14 +6,18 @@ import com.google.android.gms.cast.MediaMetadata;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.music.android.uamp.utils.LogHelper;
+import com.music.android.uamp.utils.ParserHelper;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,8 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,6 +43,7 @@ import java.util.regex.Pattern;
  */
 
 public class CrawlYouTube {
+
 
     private static Map<String, String> FORMAT_LABEL = new HashMap<>();
     private Document doc;
@@ -117,21 +124,25 @@ public class CrawlYouTube {
         //var language=document.documentElement.getAttribute("lang");
         String textDirection = "left";
         try {
+            Long currentTimeMilisec= System.currentTimeMillis();
             doc = Jsoup.connect("https://www.youtube.com/watch?v="+videoId)
                     .userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0")
                     .timeout(5000)
                     .get();
+            LogHelper.e("Tag","Time to load main page"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
             String title=doc.title();
             Element element=doc.getElementById("player-mole-container");
             if(element == null){
                 LogHelper.e("STM","Unable to get stream data");
                 return null;
             }
+            String iv_invideo_url=null;
             String bodyContent = element.html();
             if (bodyContent != null) {
                 String regx = "\"video_id\":s*\"([^\"]+)\"";
-
                 videoID = findMatch(bodyContent, regx);
+                regx = "\"iv_invideo_url\":s*\"([^\"]+)\"";
+                iv_invideo_url = findMatch(bodyContent, regx);
                 regx = "\"url_encoded_fmt_stream_map\":s*\"([^\"]+)\"";
                 videoFormats = findMatch(bodyContent, regx);
                 regx = "\"adaptive_fmts\":s*\"([^\"]+)\"";
@@ -144,7 +155,9 @@ public class CrawlYouTube {
                     if (scriptURL != null) {
                         scriptURL = scriptURL.replace("\\", "");
                         scriptURL = "https:" + scriptURL;
+                        currentTimeMilisec= System.currentTimeMillis();
                         String data = fetchDataFromUrl(scriptURL);
+                        LogHelper.e("Tag","TIme took to load javascript"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
                         findSignatureCode(data);
                         // System.out.print(js.html());
                     }
@@ -223,7 +236,6 @@ public class CrawlYouTube {
 
 
                 List<YoutubeMetaData> metaDataList=new ArrayList<>();
-                Map<String,String> downloadCodeList =new HashMap() ;
                 for (int i = 0; i < FORMAT_ORDER.length; i++) {
                     String format = FORMAT_ORDER[i];
                     if (format.equalsIgnoreCase("37") && videoURL.get(format) == null) { // hack for dash 1080p
@@ -250,11 +262,44 @@ public class CrawlYouTube {
                 }
 
                 Map<String, List<YoutubeMetaData>>data= new HashMap<>();
-                data.put("urls",metaDataList);
+                YoutubeMetaDataList youtubeMetaDataList=new YoutubeMetaDataList();
+                youtubeMetaDataList.setUrls(metaDataList);
+                //data.put("urls",metaDataList);
+                if(iv_invideo_url != null) {
+                    try {
+                        Set<Long> audioSlices=new HashSet<>();
+                        String url = StringEscapeUtils.unescapeJava(StringEscapeUtils.unescapeJava(iv_invideo_url)).replace("/\\//g", "/").replace("/\\u0026/g", "&");
+                        currentTimeMilisec= System.currentTimeMillis();
+                        doc = Jsoup.connect(java.net.URLDecoder.decode(url))
+                                .userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0")
+                                .timeout(5000)
+                                .parser(Parser.xmlParser())
+                                .get();
+                        LogHelper.e("Tag","Time took to load annotations"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
+                        currentTimeMilisec= System.currentTimeMillis();
+                        for (Element e : doc.select("annotation")) {
+                            Elements action = e.select("action");
+                            if (action != null && !action.isEmpty() && action.first().attr("type").equalsIgnoreCase("openUrl")) {
+                               Element urlEle= action.first().select("url").first();
+                                if(urlEle.attr("target").equalsIgnoreCase("current")){
+                                    String rawDur=findMatch(action.first().select("url").first().attr("value"),"\\#t=(.*)");
+                                    Long dur=ParserHelper.getDurationfromString(rawDur);
+                                    audioSlices.add(dur);
+                                }
+                            }
+                        }
+                        LogHelper.e("Tag","Time took to parse annotations"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
+                        List<Long> durs=new ArrayList<Long>(audioSlices);
+                        Collections.sort(durs);
+                        youtubeMetaDataList.setDurations(durs);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
                 Gson gson=new GsonBuilder()
                         .disableHtmlEscaping()
                         .create();
-                String json=gson.toJson(data);
+                String json=gson.toJson(youtubeMetaDataList);
                 //debug(json);
                 return json;
             }
@@ -271,6 +316,8 @@ public class CrawlYouTube {
     }
 
     public void findSignatureCode(String sourceCode) {
+        Long currentTimeMilisec= System.currentTimeMillis();
+
         //Logger ("DYVAM - Info: signature start " + getPref(STORAGE_CODE));
         String regex = "\\.set\\s*\\(\"signature\"\\s*,\\s*([a-zA-Z0-9_$][\\w$]*)\\(";
         String regex1 = "\\.sig\\s*\\|\\|\\s*([a-zA-Z0-9_$][\\w$]*)\\(/";
@@ -382,6 +429,7 @@ public class CrawlYouTube {
                         }
                     }*/
         }
+        LogHelper.e("Tag","Time to get signature "+(System.currentTimeMillis()-currentTimeMilisec)/1000);
     }
 
     public String setPref(String code, String error) {

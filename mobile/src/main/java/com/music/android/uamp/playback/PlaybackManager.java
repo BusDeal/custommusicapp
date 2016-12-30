@@ -26,6 +26,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
 import com.music.android.uamp.R;
+import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.LogHelper;
@@ -99,9 +100,9 @@ public class PlaybackManager implements Playback.Callback {
     }
 
     public void getNextQueueItemAudioUrlAndUpdate() {
-        new AsyncTask<String, Void, String>() {
+        new AsyncTask<String, Void, AudioMetaData>() {
             @Override
-            protected String doInBackground(String... params) {
+            protected AudioMetaData doInBackground(String... params) {
 
                 try {
                     Thread.sleep(2 * 60 * 1000); // sleep for 2 minutes
@@ -116,11 +117,11 @@ public class PlaybackManager implements Playback.Callback {
             }
 
             @Override
-            protected void onPostExecute(String source) {
+            protected void onPostExecute(AudioMetaData source) {
                 if (source != null) {
                     final MediaSessionCompat.QueueItem item=mQueueManager.getNextItem();
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
-                            MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()), source);
+                            MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()), source.getUrl());
                 }
             }
         }.execute();
@@ -129,33 +130,34 @@ public class PlaybackManager implements Playback.Callback {
 
     public void getAudioUrlAndPlay(final MediaSessionCompat.QueueItem currentMusic) {
 
-        //progressDialog= ProgressDialog.show(MusicPlayerActivity.this, "", "Playing...");
-        new AsyncTask<String, Void, String>() {
+        new AsyncTask<String, Void, AudioMetaData>() {
             @Override
-            protected String doInBackground(String... params) {
+            protected AudioMetaData doInBackground(String... params) {
                 return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
 
             }
 
             @Override
-            protected void onPostExecute(String source) {
+            protected void onPostExecute(AudioMetaData source) {
                 if (source != null) {
-                        /*
-                        for(String str: source.split("&")){
-                            if(str.contains("dur=")){
-                                String duration=str.split("=")[1];
-                                Double dur=Double.parseDouble(duration);
-
-                                mMusicProvider.updateDuration(
-                                        MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()),dur.longValue());
-                                break;
-                            }
-                        }*/
 
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
-                            MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source);
+                            MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
+                    if(source.getDurations() != null) {
+                        String durStr= "";
+                        for(Long dur:source.getDurations()){
+                            durStr= durStr+dur+",";
+                        }
+                        if(!durStr.equalsIgnoreCase("")) {
+                            durStr = durStr.substring(0, durStr.length() - 1);
+                        }
+                        mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS,
+                                MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), durStr);
+
+                    }
                     mPlayback.play(currentMusic);
                     mServiceCallback.onPlaybackStart();
+                    //mQueueManager.updateMetadata();
                     //getNextQueueItemAudioUrlAndUpdate();
                     LogHelper.e(TAG, source);
 

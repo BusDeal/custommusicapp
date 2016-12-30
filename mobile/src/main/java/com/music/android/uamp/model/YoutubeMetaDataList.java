@@ -9,13 +9,23 @@ import java.util.List;
 
 public class YoutubeMetaDataList {
 
-    private List<YoutubeMetaData> youtubeMetaDataList=new ArrayList<>();
+    private List<YoutubeMetaData> urls=new ArrayList<>();
 
-    public List<YoutubeMetaData> getYoutubeMetaDataList() {
-        return youtubeMetaDataList;
+    private List<Long> durations;
+
+    public List<YoutubeMetaData> getUrls() {
+        return urls;
     }
 
-    public void setYoutubeMetaDataList(List<YoutubeMetaData> youtubeMetaDataList) {
-        this.youtubeMetaDataList = youtubeMetaDataList;
+    public void setUrls(List<YoutubeMetaData> urls) {
+        this.urls = urls;
+    }
+
+    public List<Long> getDurations() {
+        return durations;
+    }
+
+    public void setDurations(List<Long> durations) {
+        this.durations = durations;
     }
 }

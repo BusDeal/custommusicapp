@@ -74,7 +74,7 @@ public class MusicProvider {
     private LruCache<String, Map<String, MutableMediaMetadata>> mMusicListByVideoId = new LruCache<>(100);
     private Context context;
 
-    public String getSourceUrl(String videoId) {
+    public AudioMetaData getSourceUrl(String videoId) {
         return mSource.getAudioSourceUrl(videoId);
     }
 
@@ -384,10 +384,10 @@ public class MusicProvider {
         mutableMetadata.metadata = metadata;
     }
 
-    public synchronized void updateDuration(String musicId, Long duration) {
+    public synchronized void updateDurations(String musicId, String duration) {
         MediaMetadataCompat metadata = getMusic(musicId);
         metadata = new MediaMetadataCompat.Builder(metadata)
-                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                .putString(RemoteJSONSource.CUSTOM_METADATA_TRACKS_DURATIONS, duration)
                 .build();
 
         MutableMediaMetadata mutableMetadata = getMutableMusic(musicId);

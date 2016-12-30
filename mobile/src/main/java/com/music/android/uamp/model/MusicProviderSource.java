@@ -25,9 +25,10 @@ public interface MusicProviderSource {
     String CUSTOM_METADATA_TRACK_SOURCE = "__SOURCE__";
     String CUSTOM_METADATA_DOWNLOADED = "__DOWNLOADED__";
     String CUSTOM_METADATA_FAVOURITE = "__FAVOURITE__";
+    String CUSTOM_METADATA_TRACKS_DURATIONS = "__DURATIONS__";
     Iterator<MediaMetadataCompat> iterator(RetrieveType retrieveType,String... parms);
 
-    String getAudioSourceUrl(String videoId) ;
+    public AudioMetaData getAudioSourceUrl(String videoId) ;
 
     public void updateDuration(Map<String, MutableMediaMetadata> metaData);
 }
