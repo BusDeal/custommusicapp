@@ -155,6 +155,8 @@ public class MediaBrowserFragment extends Fragment {
 
                 @Override
                 public void onError(@NonNull String id) {
+                    mBrowserAdapter.clear();
+                    mBrowserAdapter.notifyDataSetChanged();
                     progress.dismiss();
                     LogHelper.e(TAG, "browse fragment subscription onError, id=" + id);
                     Toast.makeText(getActivity(), R.string.error_loading_media, Toast.LENGTH_LONG).show();

@@ -18,6 +18,7 @@ package com.music.android.uamp.utils;
 
 import android.support.v4.media.MediaMetadataCompat;
 
+import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.model.MutableMediaMetadata;
 import com.music.android.uamp.model.RetrieveType;
@@ -56,7 +57,7 @@ public class SimpleMusicProviderSource implements MusicProviderSource {
     }
 
     @Override
-    public String getAudioSourceUrl(String videoId) {
+    public AudioMetaData getAudioSourceUrl(String videoId) {
         return null;
     }
 

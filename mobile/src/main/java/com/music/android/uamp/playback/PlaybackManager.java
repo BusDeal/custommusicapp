@@ -143,7 +143,7 @@ public class PlaybackManager implements Playback.Callback {
 
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
                             MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
-                    if(source.getDurations() != null) {
+                    if(source.getDurations() != null && !source.getDurations().isEmpty()) {
                         String durStr= "";
                         for(Long dur:source.getDurations()){
                             durStr= durStr+dur+",";
@@ -157,10 +157,9 @@ public class PlaybackManager implements Playback.Callback {
                     }
                     mPlayback.play(currentMusic);
                     mServiceCallback.onPlaybackStart();
-                    //mQueueManager.updateMetadata();
+                    mQueueManager.updateMetadata();
                     //getNextQueueItemAudioUrlAndUpdate();
                     LogHelper.e(TAG, source);
-
 
                 } else {
                     mQueueManager.updateMetadata();

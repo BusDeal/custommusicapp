@@ -26,6 +26,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.media.MediaDescriptionCompat;
@@ -34,10 +35,15 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.NotificationCompat;
+import android.view.View;
 
+import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.ui.MusicPlayerActivity;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.ResourceHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Keeps track of a notification and updates it automatically for a given
@@ -51,6 +57,8 @@ public class MediaNotificationManager extends BroadcastReceiver {
     private static final int REQUEST_CODE = 100;
 
     public static final String ACTION_PAUSE = "com.music.android.uamp.pause";
+    public static final String ACTION_FORWARD = "com.music.android.uamp.forward";
+    public static final String ACTION_REVERSE = "com.music.android.uamp.reverse";
     public static final String ACTION_PLAY = "com.music.android.uamp.play";
     public static final String ACTION_PREV = "com.music.android.uamp.prev";
     public static final String ACTION_NEXT = "com.music.android.uamp.next";
@@ -68,6 +76,8 @@ public class MediaNotificationManager extends BroadcastReceiver {
     private final NotificationManagerCompat mNotificationManager;
 
     private final PendingIntent mPauseIntent;
+    private final PendingIntent mForwardIntent;
+    private final PendingIntent mReverseIntent;
     private final PendingIntent mPlayIntent;
     private final PendingIntent mPreviousIntent;
     private final PendingIntent mNextIntent;
@@ -78,6 +88,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
     private final int mNotificationColor;
 
     private boolean mStarted = false;
+    private List<Long> durations = new ArrayList();
 
     public MediaNotificationManager(MusicService service) throws RemoteException {
         mService = service;
@@ -91,6 +102,10 @@ public class MediaNotificationManager extends BroadcastReceiver {
         String pkg = mService.getPackageName();
         mPauseIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
                 new Intent(ACTION_PAUSE).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
+        mForwardIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
+                new Intent(ACTION_FORWARD).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
+        mReverseIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
+                new Intent(ACTION_REVERSE).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
         mPlayIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
                 new Intent(ACTION_PLAY).setPackage(pkg), PendingIntent.FLAG_CANCEL_CURRENT);
         mLoadIntent = PendingIntent.getBroadcast(mService, REQUEST_CODE,
@@ -128,6 +143,8 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 filter.addAction(ACTION_PLAY);
                 filter.addAction(ACTION_LOAD);
                 filter.addAction(ACTION_PREV);
+                filter.addAction(ACTION_FORWARD);
+                filter.addAction(ACTION_REVERSE);
                 filter.addAction(ACTION_STOP_CASTING);
                 mService.registerReceiver(this, filter);
 
@@ -171,6 +188,14 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 break;
             case ACTION_PREV:
                 mTransportControls.skipToPrevious();
+                break;
+            case ACTION_FORWARD:
+                Long position = getSongPosition(true);
+                mTransportControls.seekTo(position);
+                break;
+            case ACTION_REVERSE:
+                position = getSongPosition(false);
+                mTransportControls.seekTo(position);
                 break;
             case ACTION_STOP_CASTING:
                 Intent i = new Intent(context, MusicService.class);
@@ -255,33 +280,103 @@ public class MediaNotificationManager extends BroadcastReceiver {
         }
     };
 
+    private int getCurrentSongPosition() {
+        if (mPlaybackState == null) {
+            return 0;
+        }
+        long currentPosition = mPlaybackState.getPosition();
+        if (mPlaybackState.getState() != PlaybackStateCompat.STATE_PAUSED) {
+            // Calculate the elapsed time between the last position update and now and unless
+            // paused, we can assume (delta * speed) + current position is approximately the
+            // latest position. This ensure that we do not repeatedly call the getPlaybackState()
+            // on MediaControllerCompat.
+            long timeDelta = SystemClock.elapsedRealtime() -
+                    mPlaybackState.getLastPositionUpdateTime();
+            currentPosition += (int) timeDelta * mPlaybackState.getPlaybackSpeed();
+        }
+        return (int) currentPosition;
+    }
+
+    public long getSongPosition(Boolean isNext) {
+        int position = getCurrentSongPosition();
+        if (isNext) {
+            return getNextSong(position);
+        } else {
+            return getPrevSong(position);
+        }
+    }
+
+    private long getNextSong(int position) {
+        for (Long duration : durations) {
+            if (position < duration) {
+                return duration;
+            }
+        }
+        return position;
+    }
+
+    private long getPrevSong(int position) {
+        Long prev = 0l;
+        int i = 0;
+        for (Long duration : durations) {
+            if (position < duration) {
+                if (position < (prev + 5000) && i >= 2) {
+                    return durations.get(i - 2);
+                }
+                return prev;
+            }
+            prev = duration;
+            i++;
+        }
+        return position;
+    }
+
+
     private Notification createNotification() {
         LogHelper.d(TAG, "updateNotificationMetadata. mMetadata=" + mMetadata);
         if (mMetadata == null || mPlaybackState == null) {
             return null;
         }
 
+        String durationStr = mMetadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+        if (durationStr != null) {
+            String durs[] = durationStr.split(",");
+            for (String str : durs) {
+                if (str == null || str.equalsIgnoreCase("")) {
+                    continue;
+                }
+                durations.add(Long.parseLong(str));
+            }
+        }
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(mService);
         int playPauseButtonPosition = 0;
-
+        int compactVisibility[]={playPauseButtonPosition};
         // If skip to previous action is enabled
         if ((mPlaybackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) != 0) {
             notificationBuilder.addAction(R.drawable.ic_skip_previous_white_24dp,
-                        mService.getString(R.string.label_previous), mPreviousIntent);
+                    mService.getString(R.string.label_previous), mPreviousIntent);
 
             // If there is a "skip to previous" button, the play/pause button will
             // be the second one. We need to keep track of it, because the MediaStyle notification
             // requires to specify the index of the buttons (actions) that should be visible
             // when in compact view.
-            playPauseButtonPosition = 1;
+
+            compactVisibility=new int[]{0,1,2};
+            if(durations.size() > 2){
+                compactVisibility=new int[]{1,2,3};
+            }
         }
 
+
+
+        addReverseAction(notificationBuilder);
         addPlayPauseAction(notificationBuilder);
+        addForwardAction(notificationBuilder);
 
         // If skip to next action is enabled
         if ((mPlaybackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) != 0) {
             notificationBuilder.addAction(R.drawable.ic_skip_next_white_24dp,
-                mService.getString(R.string.label_next), mNextIntent);
+                    mService.getString(R.string.label_next), mNextIntent);
         }
 
         MediaDescriptionCompat description = mMetadata.getDescription();
@@ -298,15 +393,15 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 fetchArtUrl = artUrl;
                 // use a placeholder art while the remote art is being downloaded
                 art = BitmapFactory.decodeResource(mService.getResources(),
-                    R.drawable.ic_default_art);
+                        R.drawable.ic_default_art);
             }
         }
 
         notificationBuilder
                 .setStyle(new NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(
-                            new int[]{playPauseButtonPosition})  // show only play/pause in compact view
-                    .setMediaSession(mSessionToken))
+                        .setShowActionsInCompactView(
+                               compactVisibility)  // show only play/pause in compact view
+                        .setMediaSession(mSessionToken))
                 .setColor(mNotificationColor)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -333,6 +428,31 @@ public class MediaNotificationManager extends BroadcastReceiver {
         }
 
         return notificationBuilder.build();
+    }
+
+    private void addReverseAction(NotificationCompat.Builder builder) {
+        String label;
+        int icon;
+        PendingIntent intent;
+        if (durations.size() > 2) {
+            label = mService.getString(R.string.label_reverse);
+            icon = R.drawable.ic_fast_rewind_white_18dp;
+            intent = mReverseIntent;
+            builder.addAction(new NotificationCompat.Action(icon, label, intent));
+        }
+
+    }
+
+    private void addForwardAction(NotificationCompat.Builder builder) {
+        String label;
+        int icon;
+        PendingIntent intent;
+        if (durations.size() > 2) {
+            label = mService.getString(R.string.label_reverse);
+            icon = R.drawable.ic_fast_forward_white_18dp;
+            intent = mForwardIntent;
+            builder.addAction(new NotificationCompat.Action(icon, label, intent));
+        }
     }
 
     private void addPlayPauseAction(NotificationCompat.Builder builder) {
@@ -364,18 +484,17 @@ public class MediaNotificationManager extends BroadcastReceiver {
             LogHelper.d(TAG, "updateNotificationPlaybackState. updating playback position to ",
                     (System.currentTimeMillis() - mPlaybackState.getPosition()) / 1000, " seconds");
             builder
-                .setWhen(System.currentTimeMillis() - mPlaybackState.getPosition())
-                .setShowWhen(true)
-                .setUsesChronometer(true);
-        } else if( mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING){
+                    .setWhen(System.currentTimeMillis() - mPlaybackState.getPosition())
+                    .setShowWhen(true)
+                    .setUsesChronometer(true);
+        } else if (mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING) {
 
-        }
-        else {
+        } else {
             LogHelper.d(TAG, "updateNotificationPlaybackState. hiding playback position");
             builder
-                .setWhen(0)
-                .setShowWhen(false)
-                .setUsesChronometer(false);
+                    .setWhen(0)
+                    .setShowWhen(false)
+                    .setUsesChronometer(false);
         }
 
         // Make sure that the notification can be dismissed by the user when we are not playing:
@@ -388,7 +507,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
             @Override
             public void onFetched(String artUrl, Bitmap bitmap, Bitmap icon) {
                 if (mMetadata != null && mMetadata.getDescription().getIconUri() != null &&
-                            mMetadata.getDescription().getIconUri().toString().equals(artUrl)) {
+                        mMetadata.getDescription().getIconUri().toString().equals(artUrl)) {
                     // If the media is still the same, update the notification:
                     LogHelper.d(TAG, "fetchBitmapFromURLAsync: set bitmap to ", artUrl);
                     builder.setLargeIcon(bitmap);

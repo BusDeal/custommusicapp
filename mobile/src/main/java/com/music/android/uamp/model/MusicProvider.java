@@ -651,6 +651,7 @@ public class MusicProvider {
         if(mFavoriteTracks.containsKey(musicId)){
             bundle.putString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE,"true");
         }
+        bundle.putString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS, metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS));
         bob.setExtras(bundle);
         MediaDescriptionCompat mDescription = bob.build();
 

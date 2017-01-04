@@ -213,13 +213,13 @@
 
         <!-- Optionally, register CampaignTrackingReceiver and CampaignTrackingService to enable
              installation campaign reporting -->
-        <receiver android:name="com.google.android.gms.analytics.CampaignTrackingReceiver"
+       <!-- <receiver android:name="com.google.android.gms.analytics.CampaignTrackingReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.android.vending.INSTALL_REFERRER" />
             </intent-filter>
         </receiver>
-        <service android:name="com.google.android.gms.analytics.CampaignTrackingService" />
+        <service android:name="com.google.android.gms.analytics.CampaignTrackingService" />-->
 
         <meta-data
             android:name="com.google.android.gms.analytics.globalConfigResource"

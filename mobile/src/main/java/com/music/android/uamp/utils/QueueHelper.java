@@ -59,6 +59,9 @@ public class QueueHelper {
 
         List<MediaMetadataCompat> current = new ArrayList<>();
         MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        if(mediaMetadataCompat == null){
+            return new ArrayList<MediaSessionCompat.QueueItem>();
+        }
         current.add(mediaMetadataCompat);
 
         return convertToQueue(current, hierarchy[0]);

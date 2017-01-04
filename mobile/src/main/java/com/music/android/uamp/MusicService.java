@@ -147,7 +147,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
     // to local playback from cast playback.
     public static final String CMD_STOP_CASTING = "CMD_STOP_CASTING";
     // Delay stopSelf by using a handler.
-    private static final int STOP_DELAY = 30000;
+    private static final int STOP_DELAY = 100000;
 
     private MusicProvider mMusicProvider;
     private PlaybackManager mPlaybackManager;
@@ -185,10 +185,10 @@ public class MusicService extends MediaBrowserServiceCompat implements
         mPackageValidator = new PackageValidator(this);
 
         GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
-        analytics.setLocalDispatchPeriod(30);
+        analytics.setLocalDispatchPeriod(10*60);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
         mTracker.enableExceptionReporting(true);
-        mTracker.enableAdvertisingIdCollection(true);
+        //mTracker.enableAdvertisingIdCollection(true);
         mTracker.enableAutoActivityTracking(true);
 
 // Build and send exception.

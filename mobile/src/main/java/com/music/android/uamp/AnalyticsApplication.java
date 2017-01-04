@@ -55,13 +55,13 @@ public class AnalyticsApplication extends Application {
         if (mTracker == null) {
 
             GoogleAnalytics  analytics = GoogleAnalytics.getInstance(this);
-            analytics.setLocalDispatchPeriod(30);
+            analytics.setLocalDispatchPeriod(10*60);
             mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
             mTracker.enableExceptionReporting(true);
-            mTracker.enableAdvertisingIdCollection(true);
+            //mTracker.enableAdvertisingIdCollection(true);
             mTracker.enableAutoActivityTracking(true);
             // To enable debug logging use: adb shell setprop log.tag.GAv4 DEBUG
-            mTracker = analytics.newTracker(R.xml.global_tracker);
+            //mTracker = analytics.newTracker(R.xml.global_tracker);
         }
         return mTracker;
     }

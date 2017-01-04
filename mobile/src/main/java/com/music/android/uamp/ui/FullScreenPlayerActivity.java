@@ -55,11 +55,14 @@ import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.MusicService;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProvider;
+import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.pnikosis.materialishprogress.ProgressWheel;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -85,6 +88,8 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             Executors.newSingleThreadScheduledExecutor();
     private ImageView mSkipPrev;
     private ImageView mSkipNext;
+    private ImageView mFastFoward;
+    private ImageView mRewind;
     private ImageView mDownLoad;
     private ImageView mPlayPause;
     private TextView mStart;
@@ -108,6 +113,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             updateProgress();
         }
     };
+    private List<Long> durations = new ArrayList();
     private final MediaControllerCompat.Callback mCallback = new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
@@ -120,6 +126,20 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             if (metadata != null) {
                 updateMediaDescription(metadata.getDescription());
                 updateDuration(metadata);
+                String durationStr = metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+                if (durationStr != null) {
+                    String durs[] = durationStr.split(",");
+                    for (String str : durs) {
+                        if(str == null || str.equalsIgnoreCase("")){
+                            continue;
+                        }
+                        durations.add(Long.parseLong(str));
+                    }
+                    if (durations.size() > 2) {
+                        mFastFoward.setVisibility(View.VISIBLE);
+                        mRewind.setVisibility(View.VISIBLE);
+                    }
+                }
             }
         }
     };
@@ -139,6 +159,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     private Boolean isDownLoading = false;
     private Tracker mTracker;
     private ProgressWheel mProgressWeel;
+    private long fastForwardData;
 
     private void navigateToBrowser(String mediaId) {
         LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
@@ -177,13 +198,15 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
-        mTracker.setScreenName("FullScreenPlayerActivity") ;
-        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
+        /*mTracker.setScreenName("FullScreenPlayerActivity");
+        mTracker.send(new HitBuilders.ScreenViewBuilder().build());*/
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
-        mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_pause_white_48dp);
-        mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_play_arrow_white_48dp);
+        mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.ic_pause_white);
+        mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.ic_play_arrow_white);
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mSkipNext = (ImageView) findViewById(R.id.next);
+        mFastFoward = (ImageView) findViewById(R.id.forward);
+        mRewind = (ImageView) findViewById(R.id.reverse);
         mDownLoad = (ImageView) findViewById(R.id.download);
         mProgressWeel = (ProgressWheel) findViewById(R.id.progress_wheel);
         mSkipPrev = (ImageView) findViewById(R.id.prev);
@@ -239,6 +262,28 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             }
         });
 
+        mFastFoward.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MediaControllerCompat.TransportControls controls =
+                        getSupportMediaController().getTransportControls();
+                Long position = getSongPosition(true);
+                controls.seekTo(position);
+                mSeekbar.setProgress(position.intValue());
+            }
+        });
+
+        mRewind.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MediaControllerCompat.TransportControls controls =
+                        getSupportMediaController().getTransportControls();
+                Long position = getSongPosition(false);
+                controls.seekTo(position);
+                mSeekbar.setProgress(position.intValue());
+            }
+        });
+
         mSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -265,15 +310,16 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
 
         mMediaBrowser = new MediaBrowserCompat(this,
                 new ComponentName(this, MusicService.class), mConnectionCallback, null);
-        String tmpMediaId=null;
+        String tmpMediaId = null;
         if (getIntent() != null) {
             MediaDescriptionCompat description = getIntent().getParcelableExtra(
                     MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
             if (description != null) {
-                tmpMediaId=description.getMediaId();
+                tmpMediaId = description.getMediaId();
             }
         }
-        final String mediaId=tmpMediaId;
+
+        final String mediaId = tmpMediaId;
         if (mediaId != null && MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId) != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
             mDownLoad.setVisibility(INVISIBLE);
         }
@@ -319,7 +365,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                         isDownLoading = false;
                         mProgressWeel.setVisibility(View.GONE);
                     }
-                }, 15*1000);
+                }, 15 * 1000);
             }
         });
         navigateToBrowser(mediaId);
@@ -338,7 +384,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         searchView.setSearchableInfo(
                 searchManager.getSearchableInfo(cn));*/
 
-        SearchSuggestion searchSuggestion=new SearchSuggestion(this,searchView);
+        SearchSuggestion searchSuggestion = new SearchSuggestion(this, searchView);
         searchSuggestion.addSearchSuggestions();
         return true;
     }
@@ -369,6 +415,20 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         if (metadata != null) {
             updateMediaDescription(metadata.getDescription());
             updateDuration(metadata);
+            String durationStr = metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+            if (durationStr != null) {
+                String durs[] = durationStr.split(",");
+                for (String str : durs) {
+                    if(str == null || str.equalsIgnoreCase("")){
+                        continue;
+                    }
+                    durations.add(Long.parseLong(str));
+                }
+                if (durations.size() > 2) {
+                    mFastFoward.setVisibility(View.VISIBLE);
+                    mRewind.setVisibility(View.VISIBLE);
+                }
+            }
         }
         updateProgress();
         if (state != null && (state.getState() == PlaybackStateCompat.STATE_PLAYING ||
@@ -586,7 +646,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
                 .setAction("play")
                 .setLabel(item.getMediaId())
-                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()),item.getMediaId())
+                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
                 .build());
         getSupportMediaController().getTransportControls()
                 .playFromMediaId(item.getMediaId(), null);
@@ -604,4 +664,43 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     public MediaBrowserCompat getMediaBrowser() {
         return mMediaBrowser;
     }
+
+    public long getSongPosition(Boolean isNext) {
+        int position = mSeekbar.getProgress();
+        if (isNext) {
+            return getNextSong(position);
+        } else {
+            return getPrevSong(position);
+        }
+    }
+
+    private long getNextSong(int position) {
+        for (Long duration : durations) {
+            if (position < duration) {
+                return duration;
+            }
+        }
+        return position;
+    }
+
+    private long getPrevSong(int position) {
+        Long prev=0l;
+        int i=0;
+        for (Long duration : durations) {
+            if (position < duration) {
+                if(position < (prev+5000) && i >= 2){
+                    return durations.get(i-2);
+                }
+                return prev;
+            }
+            prev=duration;
+            i++;
+        }
+        if(i >= 2){
+            return durations.get(i-2);
+        }
+        return position;
+    }
+
+
 }

@@ -82,11 +82,11 @@ public class RemoteJSONSource implements MusicProviderSource {
     public RemoteJSONSource(Context context) {
         this.context = context;
         GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
-        analytics.setLocalDispatchPeriod(30);
+        analytics.setLocalDispatchPeriod(600);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
-        mTracker.enableExceptionReporting(true);
-        mTracker.enableAdvertisingIdCollection(true);
-        mTracker.enableAutoActivityTracking(true);
+        //mTracker.enableExceptionReporting(true);
+        //mTracker.enableAdvertisingIdCollection(true);
+        //mTracker.enableAutoActivityTracking(true);
         //mTracker = application.getDefaultTracker();
     }
 

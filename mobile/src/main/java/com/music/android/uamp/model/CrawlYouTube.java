@@ -283,6 +283,9 @@ public class CrawlYouTube {
                                Element urlEle= action.first().select("url").first();
                                 if(urlEle.attr("target").equalsIgnoreCase("current")){
                                     String rawDur=findMatch(action.first().select("url").first().attr("value"),"\\#t=(.*)");
+                                    if(rawDur == null){
+                                        continue;
+                                    }
                                     Long dur=ParserHelper.getDurationfromString(rawDur);
                                     audioSlices.add(dur);
                                 }
@@ -291,6 +294,7 @@ public class CrawlYouTube {
                         LogHelper.e("Tag","Time took to parse annotations"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
                         List<Long> durs=new ArrayList<Long>(audioSlices);
                         Collections.sort(durs);
+                        LogHelper.e("Tag","durations list "+ durs.size());
                         youtubeMetaDataList.setDurations(durs);
                     }catch (Exception e){
                         e.printStackTrace();

@@ -201,7 +201,26 @@ public class QueueManager {
             throw new IllegalArgumentException("Invalid musicId " + musicId);
         }
 
-        mListener.onMetadataChanged(metadata);
+        if (currentMusic == null) {
+            return;
+        }
+        String currentPlayingId = MediaIDHelper.extractMusicIDFromMediaID(
+                currentMusic.getDescription().getMediaId());
+
+        if (musicId.equals(currentPlayingId)) {
+
+            String categories = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(
+                    currentMusic.getDescription().getMediaId());
+            String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
+                    musicId, categories,"sagar");
+            MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(currentPlayingId);
+            MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(mediaMetadataCompat)
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)
+                    .build();
+            mListener.onMetadataChanged(trackCopy);
+        }else {
+            mListener.onMetadataChanged(metadata);
+        }
 
         // Set the proper album artwork on the media session, so it can be shown in the
         // locked screen and in other places.
@@ -233,25 +252,7 @@ public class QueueManager {
         bitmap=Bitmap.createScaledBitmap(bitmap, 128, 128, false);
         Bitmap icon=Bitmap.createScaledBitmap(bitmap, 800, 480, false);
         mMusicProvider.updateMusicArt(musicId, bitmap, bitmap);
-        MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
-        if (currentMusic == null) {
-            return;
-        }
-        String currentPlayingId = MediaIDHelper.extractMusicIDFromMediaID(
-                currentMusic.getDescription().getMediaId());
-
-        if (musicId.equals(currentPlayingId)) {
-
-            String categories = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(
-                    currentMusic.getDescription().getMediaId());
-            String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
-                    musicId, categories,"sagar");
-            MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(currentPlayingId);
-            MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(mediaMetadataCompat)
-                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)
-                    .build();
-            mListener.onMetadataChanged(trackCopy);
-        }
+        //MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
     }
 
     public interface MetadataUpdateListener {
