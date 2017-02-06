@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.widget.ImageView;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.R;
 
 import java.util.HashSet;

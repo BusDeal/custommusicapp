@@ -23,6 +23,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
@@ -32,6 +33,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,9 +50,11 @@ import com.baoyz.swipemenulistview.SwipeMenuItem;
 import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.playback.PlaybackManager;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
@@ -59,6 +63,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.content.Context.MODE_PRIVATE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
@@ -84,6 +89,9 @@ public class MediaBrowserFragment extends Fragment {
     private MediaFragmentListener mMediaFragmentListener;
     private View mErrorView;
     private TextView mErrorMessage;
+    private Tracker mTracker;
+    private List<MediaSessionCompat.QueueItem> queueItems;
+    private com.baoyz.swipemenulistview.SwipeMenuListView listView;
 
     private ProgressDialog progress;
     private final BroadcastReceiver mConnectivityChangeReceiver = new BroadcastReceiver() {
@@ -128,6 +136,12 @@ public class MediaBrowserFragment extends Fragment {
                     checkForUserVisibleErrors(false);
                     mBrowserAdapter.notifyDataSetChanged();
                 }
+
+                @Override
+                public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
+                    queueItems = queue;
+
+                }
             };
 
     private final MediaBrowserCompat.SubscriptionCallback mSubscriptionCallback =
@@ -143,11 +157,18 @@ public class MediaBrowserFragment extends Fragment {
                         if (!children.isEmpty()) {
                             mErrorView.setVisibility(View.GONE);
                         }
+                        listView.setVisibility(View.VISIBLE);
                         mBrowserAdapter.clear();
                         for (MediaBrowserCompat.MediaItem item : children) {
                             mBrowserAdapter.add(item);
                         }
                         mBrowserAdapter.notifyDataSetChanged();
+                        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("versions", MODE_PRIVATE);
+                        Long time = sharedPreferences.getLong("versionCheckTime", 0L);
+                        Long milliseconds=(System.currentTimeMillis()-time);
+                        if( time == 0L || (int) ((milliseconds / (1000*60*60)) % 24) > 2) {
+                            UpdateChecker.checkForDialog(getActivity());
+                        }
                     } catch (Throwable t) {
                         LogHelper.e(TAG, "Error on childrenloaded", t);
                     }
@@ -163,7 +184,6 @@ public class MediaBrowserFragment extends Fragment {
                     checkForUserVisibleErrors(true);
                 }
             };
-    private Tracker mTracker;
 
 
     @Override
@@ -191,8 +211,8 @@ public class MediaBrowserFragment extends Fragment {
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
         progress.show();
         AnalyticsApplication application = (AnalyticsApplication) getActivity().getApplication();
-        mTracker =application.getDefaultTracker();
-        final com.baoyz.swipemenulistview.SwipeMenuListView listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
+        mTracker = application.getDefaultTracker();
+        listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
         listView.setAdapter(mBrowserAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -204,14 +224,13 @@ public class MediaBrowserFragment extends Fragment {
         });
 
 
-
         listView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
                 switch (index) {
                     case 0:
-                        Boolean isFavourite=menu.getViewType() ==1?true:false;
-                        addAsFavourite(mBrowserAdapter.getItem(position),isFavourite);
+                        Boolean isFavourite = menu.getViewType() == 1 ? true : false;
+                        addAsFavourite(mBrowserAdapter.getItem(position), isFavourite);
                         break;
                     case 1:
                         MediaBrowserCompat.MediaItem mediaItem = mBrowserAdapter.getItem(position);
@@ -229,6 +248,16 @@ public class MediaBrowserFragment extends Fragment {
                         mBrowserAdapter.remove(mediaItem);
                         // delete
                         break;
+                    case 2:
+                       /* mediaItem = mBrowserAdapter.getItem(position);
+                        MediaControllerCompat controller = ((FragmentActivity) getActivity())
+                                .getSupportMediaController();
+                        if (controller != null) {
+                            Bundle bundle = new Bundle();
+                            bundle.putString("mediaId", mediaItem.getMediaId());
+                            controller.getTransportControls().sendCustomAction(PlaybackManager.CUSTOM_ACTION_ADD_TO_QUEUE, bundle);
+                        }
+                        break;*/
                 }
                 // false : close the menu; true : not close the menu
                 return false;
@@ -252,8 +281,8 @@ public class MediaBrowserFragment extends Fragment {
         return rootView;
     }
 
-    private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem,Boolean isFavourite) {
-        String favouriteMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaItem.getMediaId()), MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, (!isFavourite)+"");
+    private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem, Boolean isFavourite) {
+        String favouriteMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaItem.getMediaId()), MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, (!isFavourite) + "");
         mMediaFragmentListener.getMediaBrowser().getItem(favouriteMediaId, new MediaBrowserCompat.ItemCallback() {
             /**
              * Called when the item has been returned by the browser service.
@@ -276,6 +305,24 @@ public class MediaBrowserFragment extends Fragment {
         });
     }
 
+    protected boolean shouldShowAddPlayList() {
+        MediaControllerCompat mediaController = ((FragmentActivity) getActivity())
+                .getSupportMediaController();
+        if (mediaController == null ||
+                mediaController.getMetadata() == null ||
+                mediaController.getPlaybackState() == null) {
+            return false;
+        }
+        switch (mediaController.getPlaybackState().getState()) {
+            case PlaybackStateCompat.STATE_ERROR:
+            case PlaybackStateCompat.STATE_NONE:
+            case PlaybackStateCompat.STATE_STOPPED:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     private SwipeMenuCreator getItemMenuCreator() {
         SwipeMenuCreator creator = new SwipeMenuCreator() {
 
@@ -290,11 +337,13 @@ public class MediaBrowserFragment extends Fragment {
                 openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
                         0xCE)));
                 // set item width
-                openItem.setWidth(90);
+                openItem.setWidth(120);
                 // set a icon
                 openItem.setIcon(R.drawable.ic_favorite_border);
-                if(menu.getViewType() == 1){
+                openItem.setTitle(R.string.add_favorite);
+                if (menu.getViewType() == 1) {
                     openItem.setIcon(R.drawable.ic_favorite);
+                    openItem.setTitle(R.string.remove_favorite);
                 }
                 // add to menu
                 menu.addMenuItem(openItem);
@@ -307,13 +356,27 @@ public class MediaBrowserFragment extends Fragment {
                     deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
                             0x3F, 0x25)));
                     // set item width
-                    deleteItem.setWidth(90);
+                    deleteItem.setWidth(120);
                     // set a icon
+                    deleteItem.setTitle(R.string.delete_item);
                     deleteItem.setIcon(R.drawable.ic_delete);
                     // add to menu
                     menu.addMenuItem(deleteItem);
                 }
-                // create "delete" item
+
+               /* if (shouldShowAddPlayList()) {
+                    SwipeMenuItem addPlayItem = new SwipeMenuItem(
+                            getActivity().getApplicationContext());
+                    // set item background
+                    addPlayItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                            0x3F, 0x25)));
+                    // set item width
+                    addPlayItem.setWidth(90);
+                    // set a icon
+                    addPlayItem.setIcon(R.drawable.ic_playlist_add_black_48dp);
+                    // add to menu
+                    menu.addMenuItem(addPlayItem);
+                }*/
 
 
             }
@@ -414,8 +477,7 @@ public class MediaBrowserFragment extends Fragment {
         boolean showError = forceError;
         if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID))) {
             mErrorMessage.setText("No downloads, Please download songs from All music.");
-        }
-        else if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID))) {
+        } else if (mMediaId != null && (MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE) || MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mMediaId).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID))) {
             mErrorMessage.setText("No Favourites, Please add favourites to this list.");
         }
         // If offline, message is about the lack of connectivity:
@@ -435,12 +497,15 @@ public class MediaBrowserFragment extends Fragment {
                 mTracker.send(new HitBuilders.ExceptionBuilder()
                         .setDescription(controller.getPlaybackState().getErrorMessage().toString())
                         .build());
-                showError = true;
+                showError = false;
             } else if (forceError) {
                 // Finally, if the caller requested to show error, show a generic message:
                 mErrorMessage.setText(R.string.error_loading_media);
                 showError = true;
             }
+        }
+        if(showError){
+            listView.setVisibility(View.GONE);
         }
         mErrorView.setVisibility(showError ? View.VISIBLE : View.GONE);
         LogHelper.d(TAG, "checkForUserVisibleErrors. forceError=", forceError,
@@ -482,11 +547,11 @@ public class MediaBrowserFragment extends Fragment {
             // current menu type
 
             MediaBrowserCompat.MediaItem item = getItem(position);
-            if(item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE) != null){
+            if (item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE) != null) {
                 return 1;
             }
-            if(item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
-               return 2;
+            if (item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null) {
+                return 2;
             }
 
             return 0;
@@ -522,6 +587,8 @@ public class MediaBrowserFragment extends Fragment {
                     item.getDescription(), itemState, mMediaFragmentListener.getMediaBrowser());
         }
     }
+
+
 
     public interface MediaFragmentListener extends MediaBrowserProvider {
         void onMediaItemSelected(MediaBrowserCompat.MediaItem item);

@@ -147,7 +147,8 @@ public class MusicService extends MediaBrowserServiceCompat implements
     // to local playback from cast playback.
     public static final String CMD_STOP_CASTING = "CMD_STOP_CASTING";
     // Delay stopSelf by using a handler.
-    private static final int STOP_DELAY = 100000;
+    private static final long STOP_DELAY = 1000000;
+
 
     private MusicProvider mMusicProvider;
     private PlaybackManager mPlaybackManager;

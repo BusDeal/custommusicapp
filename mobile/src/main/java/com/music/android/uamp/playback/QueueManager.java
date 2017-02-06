@@ -115,11 +115,11 @@ public class QueueManager {
         return true;
     }
 
-    public MediaSessionCompat.QueueItem getNextItem(){
-        if(mPlayingQueue.size() >= mCurrentIndex){
+    public MediaSessionCompat.QueueItem getNextItem() {
+        if (mPlayingQueue.size() >= mCurrentIndex) {
             return null;
         }
-        return mPlayingQueue.get(mCurrentIndex+1);
+        return mPlayingQueue.get(mCurrentIndex + 1);
     }
 
     public boolean setQueueFromSearch(String query, Bundle extras) {
@@ -155,8 +155,11 @@ public class QueueManager {
         updateMetadata();
     }
 
-    public void updateQueue(String mediaId){
+    public void updateQueue(String mediaId) {
         mPlayingQueue.addAll(QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
+    }
+    public void updateQueueItem(String mediaId) {
+        mPlayingQueue.addAll(1,QueueHelper.getPlayingQueue(mediaId, mMusicProvider));
     }
 
     public MediaSessionCompat.QueueItem getCurrentMusic() {
@@ -179,6 +182,10 @@ public class QueueManager {
 
     protected void setCurrentQueue(String title, List<MediaSessionCompat.QueueItem> newQueue,
                                    String initialMediaId) {
+        if (newQueue.isEmpty()) {
+            mListener.onMetadataRetrieveError();
+            return;
+        }
         mPlayingQueue = newQueue;
         int index = 0;
         if (initialMediaId != null) {
@@ -212,13 +219,13 @@ public class QueueManager {
             String categories = MediaIDHelper.extractBrowseCategoryTypeFromMediaID(
                     currentMusic.getDescription().getMediaId());
             String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
-                    musicId, categories,"sagar");
-            MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(currentPlayingId);
+                    musicId, categories, "sagar");
+            MediaMetadataCompat mediaMetadataCompat = mMusicProvider.getMusic(currentPlayingId);
             MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(mediaMetadataCompat)
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)
                     .build();
             mListener.onMetadataChanged(trackCopy);
-        }else {
+        } else {
             mListener.onMetadataChanged(metadata);
         }
 
@@ -227,20 +234,22 @@ public class QueueManager {
         if (metadata.getDescription().getIconBitmap() == null &&
                 metadata.getDescription().getIconUri() != null) {
             String albumUri = metadata.getDescription().getIconUri().toString();
-            Bitmap bitmap=null;
-            if(albumUri.startsWith("/")){
+            Bitmap bitmap = null;
+            Bitmap icon = null;
+            if (albumUri.startsWith("/")) {
                 File imgFile = new File(albumUri);
-                if(imgFile.exists()) {
+                if (imgFile.exists()) {
                     bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                    icon = Bitmap.createScaledBitmap(bitmap, 128, 128, false);
                 }
             }
-            if(bitmap != null){
-                changeAndUpdateMetadata(musicId,bitmap);
-            }else {
+            if (bitmap != null) {
+                changeAndUpdateMetadata(musicId, bitmap, icon);
+            } else {
                 AlbumArtCache.getInstance().fetch(albumUri, new AlbumArtCache.FetchListener() {
                     @Override
                     public void onFetched(String artUrl, Bitmap bitmap, Bitmap icon) {
-                       changeAndUpdateMetadata(musicId,bitmap);
+                        changeAndUpdateMetadata(musicId, bitmap, icon);
                         // If we are still playing the same music, notify the listeners:
                     }
                 });
@@ -248,17 +257,20 @@ public class QueueManager {
         }
     }
 
-    private void changeAndUpdateMetadata(String musicId,Bitmap bitmap) {
-        bitmap=Bitmap.createScaledBitmap(bitmap, 128, 128, false);
-        Bitmap icon=Bitmap.createScaledBitmap(bitmap, 800, 480, false);
-        mMusicProvider.updateMusicArt(musicId, bitmap, bitmap);
+    private void changeAndUpdateMetadata(String musicId, Bitmap bitmap, Bitmap icon) {
+        //bitmap=Bitmap.createScaledBitmap(bitmap, 128, 128, false);
+        // Bitmap icon=Bitmap.createScaledBitmap(bitmap, 800, 480, false);
+        mMusicProvider.updateMusicArt(musicId, bitmap, icon);
         //MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
     }
 
     public interface MetadataUpdateListener {
         void onMetadataChanged(MediaMetadataCompat metadata);
+
         void onMetadataRetrieveError();
+
         void onCurrentQueueIndexUpdated(int queueIndex);
+
         void onQueueUpdated(String title, List<MediaSessionCompat.QueueItem> newQueue);
     }
 }

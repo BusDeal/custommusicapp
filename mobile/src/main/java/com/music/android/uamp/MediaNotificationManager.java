@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -35,6 +36,7 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.NotificationCompat;
+import android.util.DisplayMetrics;
 import android.view.View;
 
 import com.music.android.uamp.model.MusicProviderSource;
@@ -411,6 +413,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
                 .setContentText(description.getSubtitle())
                 .setLargeIcon(art);
 
+
         if (mController != null && mController.getExtras() != null) {
             String castName = mController.getExtras().getString(MusicService.EXTRA_CONNECTED_CAST);
             if (castName != null) {
@@ -424,10 +427,16 @@ public class MediaNotificationManager extends BroadcastReceiver {
 
         setNotificationPlaybackState(notificationBuilder);
         if (fetchArtUrl != null) {
-            //fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
+            fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
         }
 
         return notificationBuilder.build();
+    }
+
+    public static float getImageFactor(Resources r){
+        DisplayMetrics metrics = r.getDisplayMetrics();
+        float multiplier=metrics.density/3f;
+        return multiplier;
     }
 
     private void addReverseAction(NotificationCompat.Builder builder) {
@@ -436,7 +445,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
         PendingIntent intent;
         if (durations.size() > 2) {
             label = mService.getString(R.string.label_reverse);
-            icon = R.drawable.ic_fast_rewind_white_18dp;
+            icon = R.drawable.ic_fast_rewind_white_48dp;
             intent = mReverseIntent;
             builder.addAction(new NotificationCompat.Action(icon, label, intent));
         }
@@ -449,22 +458,27 @@ public class MediaNotificationManager extends BroadcastReceiver {
         PendingIntent intent;
         if (durations.size() > 2) {
             label = mService.getString(R.string.label_reverse);
-            icon = R.drawable.ic_fast_forward_white_18dp;
+            icon = R.drawable.ic_fast_forward_white_48dp;
             intent = mForwardIntent;
             builder.addAction(new NotificationCompat.Action(icon, label, intent));
         }
     }
 
-    private void addPlayPauseAction(NotificationCompat.Builder builder) {
+    private void    addPlayPauseAction(NotificationCompat.Builder builder) {
         LogHelper.d(TAG, "updatePlayPauseAction");
         String label;
         int icon;
         PendingIntent intent;
         if (mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING) {
             label = mService.getString(R.string.label_pause);
-            icon = R.drawable.uamp_ic_pause_white_24dp;
+            icon = R.drawable.ic_pause_white_48dp;
             intent = mPauseIntent;
-        } else {
+        }else if(mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING || mPlaybackState.getState() == PlaybackStateCompat.STATE_CONNECTING ) {
+            label = mService.getString(R.string.connecting);
+            icon = R.drawable.ic_rotate_right_white_48dp;
+            intent = mPlayIntent;
+        }
+        else {
             label = mService.getString(R.string.label_play);
             icon = R.drawable.uamp_ic_play_arrow_white_24dp;
             intent = mPlayIntent;
@@ -487,7 +501,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
                     .setWhen(System.currentTimeMillis() - mPlaybackState.getPosition())
                     .setShowWhen(true)
                     .setUsesChronometer(true);
-        } else if (mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING) {
+        } else if (mPlaybackState.getState() == PlaybackStateCompat.STATE_BUFFERING || mPlaybackState.getState() == PlaybackStateCompat.STATE_CONNECTING) {
 
         } else {
             LogHelper.d(TAG, "updateNotificationPlaybackState. hiding playback position");
@@ -510,6 +524,8 @@ public class MediaNotificationManager extends BroadcastReceiver {
                         mMetadata.getDescription().getIconUri().toString().equals(artUrl)) {
                     // If the media is still the same, update the notification:
                     LogHelper.d(TAG, "fetchBitmapFromURLAsync: set bitmap to ", artUrl);
+                    float multiplier= getImageFactor(mService.getResources());
+                    bitmap=Bitmap.createScaledBitmap(bitmap, (int)(bitmap.getWidth()*multiplier), (int)(bitmap.getHeight()*multiplier), false);
                     builder.setLargeIcon(bitmap);
                     mNotificationManager.notify(NOTIFICATION_ID, builder.build());
                 }

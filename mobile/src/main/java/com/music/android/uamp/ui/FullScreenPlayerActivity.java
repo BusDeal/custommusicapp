@@ -20,6 +20,7 @@ import android.app.SearchManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -50,6 +51,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.MusicService;
@@ -649,7 +651,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
                 .build());
         getSupportMediaController().getTransportControls()
-                .playFromMediaId(item.getMediaId(), null);
+                .prepareFromMediaId(item.getMediaId(), null);
         finish();
         startActivity(intent);
 

@@ -136,8 +136,8 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                     case R.id.navigation_feedback:
                         Intent Email = new Intent(Intent.ACTION_SEND);
                         Email.setType("text/email");
-                        Email.putExtra(Intent.EXTRA_EMAIL, new String[] { "vidyasagarkota@gmail.com" });
-                        Email.putExtra(Intent.EXTRA_SUBJECT, "Songs Feedback");
+                        Email   .putExtra(Intent.EXTRA_EMAIL, new String[] { "vidyasagarkota@gmail.com" });
+                        Email.putExtra(Intent.EXTRA_SUBJECT, "Music App Feedback");
                         Email.putExtra(Intent.EXTRA_TEXT, "Hi," + "");
                         startActivity(Intent.createChooser(Email, "Send Feedback:"));
                         return;

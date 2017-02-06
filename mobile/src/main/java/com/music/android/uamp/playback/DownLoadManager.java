@@ -20,6 +20,8 @@ import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
+
 /**
  * Created by sagar on 5/11/16.
  */
@@ -94,7 +96,7 @@ public class DownLoadManager {
                 context.registerReceiver(broadcastReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 
             }
-        }.execute();
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
 
         return true;
     }

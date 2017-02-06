@@ -65,4 +65,8 @@
     <string name="current_splash">currentsplash</string>
     <string name="langselection">Please select language</string>
     <string name="choose">choose</string>
+    <string name="connecting">connecting</string>
+    <string name="add_favorite">Add Favourite</string>
+    <string name="remove_favorite">Remove Favorite</string>
+    <string name="delete_item">Delete</string>
 </resources>

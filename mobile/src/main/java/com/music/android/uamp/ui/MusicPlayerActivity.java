@@ -44,6 +44,8 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.loveplusplus.update.AppUtils;
+import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.RemoteJSONSource;
@@ -115,6 +117,7 @@ public class MusicPlayerActivity extends BaseActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
+        Toast.makeText(this, "appVersion : " + AppUtils.getVersionCode(this), Toast.LENGTH_SHORT).show();
         LogHelper.d(TAG, "Activity onCreate");
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
@@ -178,7 +181,7 @@ public class MusicPlayerActivity extends BaseActivity
                     .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
                     .build());
             getSupportMediaController().getTransportControls()
-                    .playFromMediaId(item.getMediaId(), null);
+                    .prepareFromMediaId(item.getMediaId(), null);
             startActivity(intent);
 
 

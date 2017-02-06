@@ -224,7 +224,7 @@ public class MediaItemViewHolder {
                 @Override
                 public void onError(String artUrl, Exception e){
                     Bitmap bm = BitmapFactory.decodeResource(view.getResources(), R.drawable.ic_launcher);
-                    bm=Bitmap.createScaledBitmap(bm, imageWidth, imageHeight, false);
+                    //bm=Bitmap.createScaledBitmap(bm, imageWidth, imageHeight, false);
                     holder.alubmImageview.setImageBitmap(bm);
                 }
             });

@@ -34,6 +34,8 @@ import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
 import com.music.android.uamp.utils.WearHelper;
 
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
+
 /**
  * Manage the interactions among the container service, the queue manager and the actual playback.
  */
@@ -42,6 +44,7 @@ public class PlaybackManager implements Playback.Callback {
     private static final String TAG = LogHelper.makeLogTag(PlaybackManager.class);
     // Action to thumbs up a media item
     private static final String CUSTOM_ACTION_THUMBS_UP = "com.music.android.uamp.THUMBS_UP";
+    public static final String CUSTOM_ACTION_ADD_TO_QUEUE = "com.music.android.uamp.ADD_TO_QUEUE";
 
     private MusicProvider mMusicProvider;
     private QueueManager mQueueManager;
@@ -108,7 +111,7 @@ public class PlaybackManager implements Playback.Callback {
                     Thread.sleep(2 * 60 * 1000); // sleep for 2 minutes
                 } catch (InterruptedException e) {
                 }
-                final MediaSessionCompat.QueueItem item=mQueueManager.getNextItem();
+                final MediaSessionCompat.QueueItem item = mQueueManager.getNextItem();
                 if (item == null) {
                     return null;
                 }
@@ -119,12 +122,12 @@ public class PlaybackManager implements Playback.Callback {
             @Override
             protected void onPostExecute(AudioMetaData source) {
                 if (source != null) {
-                    final MediaSessionCompat.QueueItem item=mQueueManager.getNextItem();
+                    final MediaSessionCompat.QueueItem item = mQueueManager.getNextItem();
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
                             MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()), source.getUrl());
                 }
             }
-        }.execute();
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
 
     }
 
@@ -143,12 +146,12 @@ public class PlaybackManager implements Playback.Callback {
 
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
                             MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
-                    if(source.getDurations() != null && !source.getDurations().isEmpty()) {
-                        String durStr= "";
-                        for(Long dur:source.getDurations()){
-                            durStr= durStr+dur+",";
+                    if (source.getDurations() != null && !source.getDurations().isEmpty()) {
+                        String durStr = "";
+                        for (Long dur : source.getDurations()) {
+                            durStr = durStr + dur + ",";
                         }
-                        if(!durStr.equalsIgnoreCase("")) {
+                        if (!durStr.equalsIgnoreCase("")) {
                             durStr = durStr.substring(0, durStr.length() - 1);
                         }
                         mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS,
@@ -158,7 +161,7 @@ public class PlaybackManager implements Playback.Callback {
                     mPlayback.play(currentMusic);
                     mServiceCallback.onPlaybackStart();
                     mQueueManager.updateMetadata();
-                    //getNextQueueItemAudioUrlAndUpdate();
+                    getNextQueueItemAudioUrlAndUpdate();
                     LogHelper.e(TAG, source);
 
                 } else {
@@ -168,7 +171,7 @@ public class PlaybackManager implements Playback.Callback {
                 }
 
             }
-        }.execute();
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
 
     }
 
@@ -436,6 +439,11 @@ public class PlaybackManager implements Playback.Callback {
                 // playback state needs to be updated because the "Favorite" icon on the
                 // custom action will change to reflect the new favorite state.
                 updatePlaybackState(null);
+            } else if (CUSTOM_ACTION_ADD_TO_QUEUE.equals(action)) {
+                String mediaId = extras.getString("mediaId");
+                mQueueManager.updateQueueItem(mediaId);
+                MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
+                mMusicProvider.addMusicVideosIdList(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), MediaIDHelper.extractMusicIDFromMediaID(mediaId));
             } else {
                 LogHelper.e(TAG, "Unsupported action: ", action);
             }
@@ -466,6 +474,13 @@ public class PlaybackManager implements Playback.Callback {
             } else {
                 updatePlaybackState("Could not find music");
             }
+        }
+
+        @Override
+        public void onPrepareFromMediaId(String mediaId, Bundle extras) {
+            mPlayback.setState(PlaybackStateCompat.STATE_CONNECTING);
+            mQueueManager.setQueueFromMusic(mediaId);
+            handlePlayRequest();
         }
     }
 

@@ -154,7 +154,10 @@ public class CrawlYouTube {
                     scriptURL = findMatch(bodyContent, regx);
                     if (scriptURL != null) {
                         scriptURL = scriptURL.replace("\\", "");
-                        scriptURL = "https:" + scriptURL;
+                        if(scriptURL != null && !scriptURL.contains(".com/")) {
+                            scriptURL = "www.youtube.com" + scriptURL;
+                        }
+                        scriptURL="https://"+scriptURL;
                         currentTimeMilisec= System.currentTimeMillis();
                         String data = fetchDataFromUrl(scriptURL);
                         LogHelper.e("Tag","TIme took to load javascript"+(System.currentTimeMillis()-currentTimeMilisec)/1000);

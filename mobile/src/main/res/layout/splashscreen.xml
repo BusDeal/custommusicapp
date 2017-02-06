@@ -3,7 +3,7 @@
     	xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:id="@+id/ivSplash"
-			android:src="@drawable/ic_splash"
+			android:src="@drawable/splashscreen"
             android:layout_height="match_parent"
             android:contentDescription="@null"
             android:scaleType="centerCrop"/>
