@@ -42,7 +42,7 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/new_ic_launcher"
         android:label="@string/app_name"
         android:name=".AnalyticsApplication"
         android:theme="@style/UAmpAppTheme"
@@ -106,7 +106,7 @@
         the current environment -->
         <activity
             android:name="com.music.android.uamp.ui.NowPlayingActivity"
-            android:icon="@drawable/ic_launcher">
+            android:icon="@drawable/new_ic_launcher">
         </activity>
 
         <!-- Main activity for Android TV user interface -->
@@ -225,28 +225,20 @@
             android:name="com.google.android.gms.analytics.globalConfigResource"
             android:resource="@xml/global_config" />
 
-        <service android:name="com.parse.PushService" />
-        <receiver android:name="com.parse.GcmBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND">
-            <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-                <category android:name="com.music.android.uamp" />
-            </intent-filter>
-        </receiver>
-        <receiver android:name="com.parse.ParsePushBroadcastReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="com.parse.push.intent.RECEIVE" />
-                <action android:name="com.parse.push.intent.OPEN" />
-                <action android:name="com.parse.push.intent.DELETE" />
-            </intent-filter>
-        </receiver>
-        <meta-data
-            android:name="com.parse.push.notification_icon"
-            android:resource="@drawable/ic_launcher" />
 
         <service
             android:name="com.loveplusplus.update.DownloadService"
             android:exported="true" />
+
+        <service
+            android:name="com.music.android.uamp.MyFirebaseMessagingService">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/new_ic_launcher" />
 
         <!--<provider
             android:authorities="com.music.android.uamp.ui.SuggestionsProvider"

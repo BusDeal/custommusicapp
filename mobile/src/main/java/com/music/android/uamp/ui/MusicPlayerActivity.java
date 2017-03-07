@@ -117,7 +117,6 @@ public class MusicPlayerActivity extends BaseActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Toast.makeText(this, "appVersion : " + AppUtils.getVersionCode(this), Toast.LENGTH_SHORT).show();
         LogHelper.d(TAG, "Activity onCreate");
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();

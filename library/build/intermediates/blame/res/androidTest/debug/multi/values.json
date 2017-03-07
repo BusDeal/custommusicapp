@@ -1,0 +1,159 @@
+[
+    {
+        "outputFile": "/home/sagar/Documents/android-music-app/library/build/intermediates/incremental/mergeDebugAndroidTestResources/merged.dir/values/values.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 72,
+                    "endOffset": 123
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 2,
+                        "startColumn": 4,
+                        "startOffset": 55,
+                        "endColumn": 72,
+                        "endOffset": 123
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 128,
+                    "endColumn": 76,
+                    "endOffset": 200
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 3,
+                        "startColumn": 4,
+                        "startOffset": 128,
+                        "endColumn": 76,
+                        "endOffset": 200
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 205,
+                    "endColumn": 72,
+                    "endOffset": 273
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 205,
+                        "endColumn": 72,
+                        "endOffset": 273
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 278,
+                    "endColumn": 68,
+                    "endOffset": 342
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 278,
+                        "endColumn": 68,
+                        "endOffset": 342
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 347,
+                    "endColumn": 83,
+                    "endOffset": 426
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 347,
+                        "endColumn": 83,
+                        "endOffset": 426
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 7,
+                    "startColumn": 4,
+                    "startOffset": 431,
+                    "endColumn": 70,
+                    "endOffset": 497
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 431,
+                        "endColumn": 70,
+                        "endOffset": 497
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 8,
+                    "startColumn": 4,
+                    "startOffset": 502,
+                    "endColumn": 93,
+                    "endOffset": 591
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 502,
+                        "endColumn": 93,
+                        "endOffset": 591
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 9,
+                    "startColumn": 4,
+                    "startOffset": 596,
+                    "endColumn": 77,
+                    "endOffset": 669
+                },
+                "from": {
+                    "file": "/home/sagar/Documents/android-music-app/library/build/intermediates/bundles/debug/res/values/values.xml",
+                    "position": {
+                        "startLine": 9,
+                        "startColumn": 4,
+                        "startOffset": 596,
+                        "endColumn": 77,
+                        "endOffset": 669
+                    }
+                }
+            }
+        ]
+    }
+]

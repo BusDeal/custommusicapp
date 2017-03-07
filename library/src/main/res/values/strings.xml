@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="android_auto_update_dialog_title">Upgrade</string>
+
+    <string name="android_auto_update_notify_ticker">A New version FreeMp3 available</string>
+    <string name="android_auto_update_notify_content">content</string>
+
+    <string name="android_auto_update_dialog_btn_download">download</string>
+    <string name="android_auto_update_dialog_btn_cancel">cancel</string>
+
+    <string name="android_auto_update_toast_no_new_update">no update</string>
+
+    <string name="android_auto_update_download_progress">download progress</string>
+
+    <string name="android_auto_update_dialog_checking">Checking</string>
+
+
+</resources>

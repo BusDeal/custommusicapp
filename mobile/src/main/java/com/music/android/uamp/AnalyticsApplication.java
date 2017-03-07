@@ -69,24 +69,6 @@ public class AnalyticsApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Parse.initialize(this, "XaIUw8Qu5p8vMeTdZ8lTE6WSkRUU7csoD6VaUk5s", "TguUhYS4MizEzl9AMRH2PqXNe7wfShWTDeXMAEAo");
-        // Specify a Activity to handle all pushes by default.
-        //PushService.setDefaultPushCallback(this, MainActivity.class);
-        ParseInstallation.getCurrentInstallation().saveInBackground();
-        Parse.setLogLevel(Parse.LOG_LEVEL_VERBOSE);
-        ParsePush.subscribeInBackground("", new SaveCallback() {
-            @Override
-            public void done(ParseException e) {
-                String installationId=  ParseInstallation.getCurrentInstallation().getInstallationId();
-                Log.d("com.parse.installId", installationId);
-                if (e == null) {
-                    Log.d("com.parse.push", "successfully subscribed to the broadcast channel.");
-                } else {
-                    Log.e("com.parse.push", "failed to subscribe for push", e);
-                }
-            }
-        });
-
         PackageInfo pInfo = null;
         try {
             pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);

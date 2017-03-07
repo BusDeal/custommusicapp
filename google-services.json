@@ -1,20 +1,31 @@
 {
   "project_info": {
-    "project_number": "78871171769",
-    "project_id": "firebase-jukebox"
+    "project_number": "142680490010",
+    "firebase_url": "https://fir-freemp3.firebaseio.com",
+    "project_id": "firebase-freemp3",
+    "storage_bucket": "firebase-freemp3.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:78871171769:android:05a5b5620659f789",
+        "mobilesdk_app_id": "1:142680490010:android:05a5b5620659f789",
         "android_client_info": {
           "package_name": "com.music.android.uamp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "142680490010-gv0n15hndn37fls7u6olvkrior1at6p6.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "142680490010-3k6ko9evogapvfll3h5kg48cigr2p4je.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyAJ2xVjt60u--8MMgaDE2WjEsuvz220IKQ"
+          "current_key": "AIzaSyCpZkSX5Dv_vLtWfuSTw1fkm5BvnOVbHSc"
         }
       ],
       "services": {
@@ -29,7 +40,7 @@
           "other_platform_oauth_client": []
         },
         "ads_service": {
-          "status": 1
+          "status": 2
         }
       }
     }
