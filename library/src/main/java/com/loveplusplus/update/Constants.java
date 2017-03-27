@@ -9,7 +9,7 @@ class Constants {
     static final String APK_UPDATE_CONTENT = "updateMessage";
     static final String APK_VERSION_CODE = "versionCode";
     static final String APK_VERSION_CODE_STRING="versionCodeString";
-    static final String APK_FORCE_UPDATE="APK_FORCE_UPDATE";
+    static final String APK_FORCE_UPDATE="forceUpdate";
 
     static final int TYPE_NOTIFICATION = 2;
 

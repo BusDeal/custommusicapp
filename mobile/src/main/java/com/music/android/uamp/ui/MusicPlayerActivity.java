@@ -23,11 +23,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.wifi.WifiInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.media.MediaBrowserCompat;
@@ -36,6 +38,7 @@ import android.text.TextUtils;
 import android.util.LruCache;
 import android.view.Menu;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +47,7 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.loveplusplus.update.AppUtils;
 import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.AnalyticsApplication;
@@ -96,8 +100,9 @@ public class MusicPlayerActivity extends BaseActivity
 
     private Bundle mVoiceSearchParams;
     private SearchView searchView;
-    private Tracker mTracker;
+    //private Tracker mTracker;
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -117,9 +122,12 @@ public class MusicPlayerActivity extends BaseActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        NetworkHelper.setScreenOff(this);
         LogHelper.d(TAG, "Activity onCreate");
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        mTracker = application.getDefaultTracker();
+        //mTracker = application.getDefaultTracker();
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         initializeToolbar();
 
         initializeFromParams(savedInstanceState, getIntent());
@@ -159,7 +167,7 @@ public class MusicPlayerActivity extends BaseActivity
         if (mediaId != null) {
             outState.putString(SAVED_MEDIA_ID, mediaId);
         }
-        super.onSaveInstanceState(outState);
+        //super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -172,25 +180,24 @@ public class MusicPlayerActivity extends BaseActivity
             intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                     item.getDescription());
 
-            mTracker.set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId());
-            mTracker.send(new HitBuilders.EventBuilder()
-                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
-                    .setAction("play")
-                    .setLabel(item.getMediaId())
-                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
-                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "play");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, "MusicPlayerActivity");
+            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
             getSupportMediaController().getTransportControls()
                     .prepareFromMediaId(item.getMediaId(), null);
             startActivity(intent);
-
-
         } else if (item.isBrowsable()) {
-            mTracker.send(new HitBuilders.EventBuilder()
-                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
-                    .setAction("browse")
-                    .setLabel(item.getMediaId())
-                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
-                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "browse");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
+            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM_LIST, bundle);
             navigateToBrowser(item.getMediaId());
         } else {
             LogHelper.w(TAG, "Ignoring MediaItem that is neither browsable nor playable: ",

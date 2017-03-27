@@ -144,6 +144,15 @@ public class PlaybackManager implements Playback.Callback {
             protected void onPostExecute(AudioMetaData source) {
                 if (source != null) {
 
+                    MediaSessionCompat.QueueItem latestCurrentMusic=mQueueManager.getCurrentMusic();
+                    if(latestCurrentMusic != currentMusic){
+                        LogHelper.e(TAG, "currentMusic is different from the new current music");
+                        return;
+                    }
+                    if(mPlayback.getState() == PlaybackStateCompat.STATE_ERROR){
+                        LogHelper.e(TAG, "music service is down is return");
+                        return;
+                    }
                     mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
                             MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
                     if (source.getDurations() != null && !source.getDurations().isEmpty()) {
@@ -158,11 +167,12 @@ public class PlaybackManager implements Playback.Callback {
                                 MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), durStr);
 
                     }
+
                     mPlayback.play(currentMusic);
-                    mServiceCallback.onPlaybackStart();
                     mQueueManager.updateMetadata();
-                    getNextQueueItemAudioUrlAndUpdate();
-                    LogHelper.e(TAG, source);
+                    mServiceCallback.onPlaybackStart();
+                    //getNextQueueItemAudioUrlAndUpdate();
+                    //LogHelper.e(TAG, source);
 
                 } else {
                     mQueueManager.updateMetadata();
@@ -196,6 +206,8 @@ public class PlaybackManager implements Playback.Callback {
     public void handleStopRequest(String withError) {
         LogHelper.d(TAG, "handleStopRequest: mState=" + mPlayback.getState() + " error=", withError);
         mPlayback.stop(true);
+        LogHelper.e(TAG, "music service is down");
+        mPlayback.setState(PlaybackStateCompat.STATE_ERROR);
         mServiceCallback.onPlaybackStop();
         updatePlaybackState(withError);
     }

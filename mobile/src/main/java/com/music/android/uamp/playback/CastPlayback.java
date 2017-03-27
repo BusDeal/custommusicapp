@@ -340,6 +340,11 @@ public class CastPlayback implements Playback {
         }
 
         @Override
+        public void onAdBreakStatusUpdated() {
+
+        }
+
+        @Override
         public void onQueueStatusUpdated() {
         }
 

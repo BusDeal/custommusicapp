@@ -25,6 +25,7 @@ import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.StandardExceptionParser;
 import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.AnalyticsApplication;
+import com.music.android.uamp.utils.Connectivity;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.ParserHelper;
 
@@ -76,14 +77,14 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
     private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs"};
-    private final Tracker mTracker;
+    //private final Tracker mTracker;
     private Context context;
 
     public RemoteJSONSource(Context context) {
         this.context = context;
-        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+       /* GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
         analytics.setLocalDispatchPeriod(600);
-        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker = analytics.newTracker("UA-88784216-1");*/ // Replace with actual tracker id
         //mTracker.enableExceptionReporting(true);
         //mTracker.enableAdvertisingIdCollection(true);
         //mTracker.enableAutoActivityTracking(true);
@@ -135,7 +136,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                 apiUrl = CATALOG_URL + ("&relatedToVideoId=" + sb.toString());
             }
 
-            LogHelper.e(TAG, "catalog url " + apiUrl);
+            //LogHelper.e(TAG, "catalog url " + apiUrl);
             int slashPos = CATALOG_URL.lastIndexOf('/');
             String path = CATALOG_URL.substring(0, slashPos + 1);
             JSONObject jsonObj = fetchJSONFromUrl(apiUrl);
@@ -154,11 +155,11 @@ public class RemoteJSONSource implements MusicProviderSource {
             LogHelper.e(TAG, e, "Could not retrieve music list");
             throw new RuntimeException("Could not retrieve music list", e);
         } catch (Exception e) {
-            mTracker.send(new HitBuilders.ExceptionBuilder()
+          /*  mTracker.send(new HitBuilders.ExceptionBuilder()
                     .setDescription(new StandardExceptionParser(this.context, null)
                             .getDescription(Thread.currentThread().getName(), e))
                     .setFatal(false)
-                    .build());
+                    .build());*/
             throw new RuntimeException("Could not retrieve music list", e);
         }
     }
@@ -182,33 +183,38 @@ public class RemoteJSONSource implements MusicProviderSource {
         JSONObject jsonObject = null;
         try {
             Long currentTimeMilisec = System.currentTimeMillis();
-            CrawlYouTube crawlYouTube = new CrawlYouTube();
-            String data = crawlYouTube.run(videoId);
-            LogHelper.e("Tag","Total time took to crawl " + (System.currentTimeMillis() - currentTimeMilisec) / 1000);
-            if (data != null) {
-                jsonObject = new JSONObject(data);
-            } else {
-                mTracker.send(new HitBuilders.EventBuilder()
+            if (Connectivity.isConnectedFast(this.context)) {
+                CrawlYouTube crawlYouTube = new CrawlYouTube();
+                String data = crawlYouTube.run(videoId);
+
+                if (data != null) {
+                    jsonObject = new JSONObject(data);
+                } else {
+               /* mTracker.send(new HitBuilders.EventBuilder()
                         .setCategory("server")
                         .setAction("audioUrl")
                         .setLabel(videoId)
-                        .build());
+                        .build());*/
+                    jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
+                }
+            } else {
                 jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
             }
+            LogHelper.e("Tag", "Total time took to crawl " + (System.currentTimeMillis() - currentTimeMilisec) / 1000);
             return getAudioUrl(jsonObject);
         } catch (JSONException e) {
-            mTracker.send(new HitBuilders.ExceptionBuilder()
+          /*  mTracker.send(new HitBuilders.ExceptionBuilder()
                     .setDescription(new StandardExceptionParser(this.context, null)
                             .getDescription(Thread.currentThread().getName(), e))
                     .setFatal(false)
-                    .build());
+                    .build());*/
             e.printStackTrace();
         } catch (Exception e) {
-            mTracker.send(new HitBuilders.ExceptionBuilder()
+           /* mTracker.send(new HitBuilders.ExceptionBuilder()
                     .setDescription(new StandardExceptionParser(this.context, null)
                             .getDescription(Thread.currentThread().getName(), e))
                     .setFatal(false)
-                    .build());
+                    .build());*/
             e.printStackTrace();
         }
         return null;

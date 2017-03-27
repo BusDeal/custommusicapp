@@ -18,6 +18,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
+import org.xml.sax.InputSource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -160,7 +161,10 @@ public class CrawlYouTube {
                         scriptURL="https://"+scriptURL;
                         currentTimeMilisec= System.currentTimeMillis();
                         String data = fetchDataFromUrl(scriptURL);
-                        LogHelper.e("Tag","TIme took to load javascript"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
+                        if(data == null){
+                            return null;
+                        }
+                        LogHelper.e("Tag","TIme took to load javascript "+(System.currentTimeMillis()-currentTimeMilisec)/1000);
                         findSignatureCode(data);
                         // System.out.print(js.html());
                     }
@@ -219,24 +223,7 @@ public class CrawlYouTube {
                             showFormat.put(index,  "all");
                         }
                     }
-                    /*if (rule == "max") {
-                        for (var i = FORMAT_ORDER.length - 1; i >= 0; i--) {
-                            var format = FORMAT_ORDER[i];
-                            if (FORMAT_TYPE[format] == category && videoURL[format] != undefined) {
-                                showFormat[format] = true;
-                                break;
-                            }
-                        }
-                    }*/
                 }
-
-               /* String dashPref = getPref(STORAGE_DASH);
-                if (dashPref == "1") {
-                    SHOW_DASH_FORMATS = true;
-                } else if (dashPref != "0") {
-                    setPref(STORAGE_DASH, "0");
-                }*/
-
 
                 List<YoutubeMetaData> metaDataList=new ArrayList<>();
                 for (int i = 0; i < FORMAT_ORDER.length; i++) {
@@ -548,10 +535,13 @@ public class CrawlYouTube {
         try {
             URLConnection urlConnection = new URL(urlString).openConnection();
             HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
+            httpURLConnection.setConnectTimeout(60000);
+            httpURLConnection.setReadTimeout(60000);
             int status = httpURLConnection.getResponseCode();
             InputStream in;
             if (status >= 400) {
                 in = httpURLConnection.getErrorStream();
+                return null;
             } else {
                 in = urlConnection.getInputStream();
             }
@@ -564,7 +554,7 @@ public class CrawlYouTube {
             }
             return sb.toString();
         } catch (Exception e) {
-            //LogHelper.e(TAG, "Failed to parse the json for media list", e);
+            LogHelper.e("", "Failed to parse the java script", e);
             return null;
         } finally {
             if (reader != null) {

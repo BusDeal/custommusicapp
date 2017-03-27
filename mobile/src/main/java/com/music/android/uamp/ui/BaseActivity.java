@@ -16,6 +16,7 @@
 package com.music.android.uamp.ui;
 
 import android.app.ActivityManager;
+import android.app.FragmentManager;
 import android.content.ComponentName;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -91,6 +92,19 @@ public abstract class BaseActivity extends ActionBarCastActivity implements Medi
             getSupportMediaController().unregisterCallback(mMediaControllerCallback);
         }
         mMediaBrowser.disconnect();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // this means that this activity will not be recreated now, user is leaving it
+        // or the activity is otherwise finishing
+        if(isFinishing()) {
+            FragmentManager fm = getFragmentManager();
+            // we will not need this fragment anymore, this may also be a good place to signal
+            // to the retained fragment object to perform its own cleanup.
+            fm.beginTransaction().remove(mControlsFragment).commit();
+        }
     }
 
     @Override

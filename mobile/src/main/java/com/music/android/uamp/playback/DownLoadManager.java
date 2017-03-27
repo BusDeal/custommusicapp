@@ -239,6 +239,7 @@ public class DownLoadManager {
                 }
                 cursor.moveToNext();
             }
+            cursor.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

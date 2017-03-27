@@ -101,6 +101,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="right"
                     android:layout_margin="@dimen/media_item_icon_margin_start"
+                    android:layout_marginLeft="20dp"
                     android:contentDescription="@string/download"
                     android:src="@drawable/ic_download"/>
                 <com.pnikosis.materialishprogress.ProgressWheel

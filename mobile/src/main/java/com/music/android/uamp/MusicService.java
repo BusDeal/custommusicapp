@@ -165,7 +165,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
     private boolean mIsConnectedToCar;
     private BroadcastReceiver mCarConnectionReceiver;
     private DownLoadManager downloadManager;
-    private Tracker mTracker;
+    //private Tracker mTracker;
 
     /*
      * (non-Javadoc)
@@ -185,12 +185,9 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
         mPackageValidator = new PackageValidator(this);
 
-        GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
-        analytics.setLocalDispatchPeriod(10*60);
-        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
-        mTracker.enableExceptionReporting(true);
-        //mTracker.enableAdvertisingIdCollection(true);
-        mTracker.enableAutoActivityTracking(true);
+        /*GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
+        analytics.setLocalDispatchPeriod(10*60);*/
+
 
 // Build and send exception.
 
@@ -313,6 +310,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         mSession.release();
+
     }
 
     @Override
@@ -432,11 +430,6 @@ public class MusicService extends MediaBrowserServiceCompat implements
                 });
             }
         } catch (Exception e) {
-            mTracker.send(new HitBuilders.ExceptionBuilder()
-                    .setDescription(new StandardExceptionParser(this, null)
-                            .getDescription(Thread.currentThread().getName(), e))
-                    .setFatal(false)
-                    .build());
             result.sendResult(null);
         }
     }

@@ -89,7 +89,7 @@ public class MediaBrowserFragment extends Fragment {
     private MediaFragmentListener mMediaFragmentListener;
     private View mErrorView;
     private TextView mErrorMessage;
-    private Tracker mTracker;
+    //private Tracker mTracker;
     private List<MediaSessionCompat.QueueItem> queueItems;
     private com.baoyz.swipemenulistview.SwipeMenuListView listView;
 
@@ -151,7 +151,7 @@ public class MediaBrowserFragment extends Fragment {
                                              @NonNull List<MediaBrowserCompat.MediaItem> children) {
                     try {
                         progress.dismiss();
-                        LogHelper.d(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
+                        LogHelper.e(TAG, "fragment onChildrenLoaded, parentId=" + parentId +
                                 "  count=" + children.size());
                         checkForUserVisibleErrors(children.isEmpty());
                         if (!children.isEmpty()) {
@@ -197,7 +197,7 @@ public class MediaBrowserFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        LogHelper.d(TAG, "fragment.onCreateView");
+        LogHelper.e(TAG, "fragment.onCreateView");
         View rootView = inflater.inflate(R.layout.fragment_list, container, false);
 
         mErrorView = rootView.findViewById(R.id.playback_error);
@@ -211,7 +211,7 @@ public class MediaBrowserFragment extends Fragment {
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
         progress.show();
         AnalyticsApplication application = (AnalyticsApplication) getActivity().getApplication();
-        mTracker = application.getDefaultTracker();
+        //mTracker = application.getDefaultTracker();
         listView = (com.baoyz.swipemenulistview.SwipeMenuListView) rootView.findViewById(R.id.list_view);
         listView.setAdapter(mBrowserAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -279,6 +279,12 @@ public class MediaBrowserFragment extends Fragment {
             }
         });
         return rootView;
+    }
+
+
+    @Override
+    public void onPause(){
+        super.onPause();
     }
 
     private void addAsFavourite(MediaBrowserCompat.MediaItem mediaItem, Boolean isFavourite) {
@@ -391,7 +397,7 @@ public class MediaBrowserFragment extends Fragment {
         // fetch browsing information to fill the listview:
         MediaBrowserCompat mediaBrowser = mMediaFragmentListener.getMediaBrowser();
 
-        LogHelper.d(TAG, "fragment.onStart, mediaId=", mMediaId,
+        LogHelper.e(TAG, "fragment.onStart, mediaId=", mMediaId,
                 "  onConnected=" + mediaBrowser.isConnected());
 
         if (mediaBrowser.isConnected()) {
@@ -421,6 +427,9 @@ public class MediaBrowserFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
+        if(progress != null){
+            progress.dismiss();
+        }
         mMediaFragmentListener = null;
     }
 
@@ -494,9 +503,9 @@ public class MediaBrowserFragment extends Fragment {
                     && controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_ERROR
                     && controller.getPlaybackState().getErrorMessage() != null) {
                 mErrorMessage.setText(controller.getPlaybackState().getErrorMessage());
-                mTracker.send(new HitBuilders.ExceptionBuilder()
+               /* mTracker.send(new HitBuilders.ExceptionBuilder()
                         .setDescription(controller.getPlaybackState().getErrorMessage().toString())
-                        .build());
+                        .build());*/
                 showError = false;
             } else if (forceError) {
                 // Finally, if the caller requested to show error, show a generic message:

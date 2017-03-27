@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v7.widget.SearchView;
 import android.util.LruCache;
 import android.view.Menu;
@@ -17,6 +18,7 @@ import android.widget.Toast;
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.RemoteJSONSource;
@@ -41,20 +43,19 @@ public class SearchSuggestion {
 
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
     private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
-    private final Tracker mTracker;
+    //private final Tracker mTracker;
 
     private SearchView searchView;
     private Context context;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     public SearchSuggestion(Context context, SearchView searchView) {
         this.searchView = searchView;
         this.context = context;
-        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
-        analytics.setLocalDispatchPeriod(30);
-        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
-        mTracker.enableExceptionReporting(true);
-        mTracker.enableAdvertisingIdCollection(true);
-        mTracker.enableAutoActivityTracking(true);
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
+
+        /*GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+        analytics.setLocalDispatchPeriod(30);*/
     }
 
     public static void addSelectedSuggestions(LruCache<String, Integer> suggestionSelected) {
@@ -183,11 +184,13 @@ public class SearchSuggestion {
                 } else {
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
                 }*/
-                mTracker.send(new HitBuilders.EventBuilder()
-                        .setCategory("Global Search")
-                        .setAction("search")
-                        .setLabel(suggestion)
-                        .build());
+
+                Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, suggestion);
+                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "search");
+                bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,"Global search");
+                bundle.putString(FirebaseAnalytics.Param.CONTENT, suggestion);
+                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SEARCH, bundle);
                 searchView.setQuery(suggestion, true);
                 Intent intent = new Intent(context, MusicPlayerActivity.class);
                 intent.putExtra(SearchManager.QUERY, suggestion);

@@ -54,12 +54,12 @@ public class AnalyticsApplication extends Application {
     synchronized public Tracker getDefaultTracker() {
         if (mTracker == null) {
 
-            GoogleAnalytics  analytics = GoogleAnalytics.getInstance(this);
+            /*GoogleAnalytics  analytics = GoogleAnalytics.getInstance(this);
             analytics.setLocalDispatchPeriod(10*60);
             mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
             mTracker.enableExceptionReporting(true);
             //mTracker.enableAdvertisingIdCollection(true);
-            mTracker.enableAutoActivityTracking(true);
+            mTracker.enableAutoActivityTracking(true);*/
             // To enable debug logging use: adb shell setprop log.tag.GAv4 DEBUG
             //mTracker = analytics.newTracker(R.xml.global_tracker);
         }

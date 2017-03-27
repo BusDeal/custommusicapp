@@ -21,6 +21,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -43,6 +44,7 @@ import android.text.format.DateUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -51,6 +53,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.loveplusplus.update.UpdateChecker;
 import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.AnalyticsApplication;
@@ -60,6 +63,7 @@ import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
+import com.music.android.uamp.utils.NetworkHelper;
 import com.pnikosis.materialishprogress.ProgressWheel;
 
 import java.io.File;
@@ -132,7 +136,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 if (durationStr != null) {
                     String durs[] = durationStr.split(",");
                     for (String str : durs) {
-                        if(str == null || str.equalsIgnoreCase("")){
+                        if (str == null || str.equalsIgnoreCase("")) {
                             continue;
                         }
                         durations.add(Long.parseLong(str));
@@ -159,7 +163,8 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 }
             };
     private Boolean isDownLoading = false;
-    private Tracker mTracker;
+    //private Tracker mTracker;
+    private FirebaseAnalytics mFirebaseAnalytics;
     private ProgressWheel mProgressWeel;
     private long fastForwardData;
 
@@ -198,10 +203,17 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             getSupportActionBar().setTitle("");
         }
 
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        NetworkHelper.setScreenOff(this);
+
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        mTracker = application.getDefaultTracker();
+        //mTracker = application.getDefaultTracker();
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        //mTracker = application.getDefaultTracker();
         /*mTracker.setScreenName("FullScreenPlayerActivity");
         mTracker.send(new HitBuilders.ScreenViewBuilder().build());*/
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        NetworkHelper.setScreenOff(this);
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
         mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.ic_pause_white);
         mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.ic_play_arrow_white);
@@ -421,7 +433,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             if (durationStr != null) {
                 String durs[] = durationStr.split(",");
                 for (String str : durs) {
-                    if(str == null || str.equalsIgnoreCase("")){
+                    if (str == null || str.equalsIgnoreCase("")) {
                         continue;
                     }
                     durations.add(Long.parseLong(str));
@@ -467,6 +479,14 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         if (mScheduleFuture != null) {
             mScheduleFuture.cancel(false);
         }
+    }
+
+    public String getMediaId() {
+        MediaBrowserFragment fragment = getBrowseFragment();
+        if (fragment == null) {
+            return null;
+        }
+        return fragment.getMediaId();
     }
 
     @Override
@@ -643,13 +663,13 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             intent.putExtra("mediaId", item.getDescription().getMediaId());
         }
 
-        mTracker.setScreenName("FullScreenPlayerActivity");
-        mTracker.send(new HitBuilders.EventBuilder()
-                .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
-                .setAction("play")
-                .setLabel(item.getMediaId())
-                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
-                .build());
+        Bundle bundle = new Bundle();
+        bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+        bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+        bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "play");
+        bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+        bundle.putString(FirebaseAnalytics.Param.CONTENT, "FullScreenPlayerActivity");
+        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
         getSupportMediaController().getTransportControls()
                 .prepareFromMediaId(item.getMediaId(), null);
         finish();
@@ -686,20 +706,20 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     }
 
     private long getPrevSong(int position) {
-        Long prev=0l;
-        int i=0;
+        Long prev = 0l;
+        int i = 0;
         for (Long duration : durations) {
             if (position < duration) {
-                if(position < (prev+5000) && i >= 2){
-                    return durations.get(i-2);
+                if (position < (prev + 5000) && i >= 2) {
+                    return durations.get(i - 2);
                 }
                 return prev;
             }
-            prev=duration;
+            prev = duration;
             i++;
         }
-        if(i >= 2){
-            return durations.get(i-2);
+        if (i >= 2) {
+            return durations.get(i - 2);
         }
         return position;
     }
