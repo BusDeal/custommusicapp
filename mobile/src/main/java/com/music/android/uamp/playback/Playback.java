@@ -128,6 +128,11 @@ public interface Playback {
          * @param mediaId being currently played
          */
         void setCurrentMediaId(String mediaId);
+
+        /**
+         * If any metadata changed like ratings or list of songs for current songs
+         */
+        void onMetaDataChanged();
     }
 
     /**

@@ -23,12 +23,15 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 
 import com.music.android.uamp.MusicService;
+import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.utils.LogHelper;
@@ -38,6 +41,7 @@ import static android.media.MediaPlayer.OnCompletionListener;
 import static android.media.MediaPlayer.OnErrorListener;
 import static android.media.MediaPlayer.OnPreparedListener;
 import static android.media.MediaPlayer.OnSeekCompleteListener;
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
 import static android.support.v4.media.session.MediaSessionCompat.QueueItem;
 
 /**
@@ -59,7 +63,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
     // we don't have focus, but can duck (play at a low volume)
     private static final int AUDIO_NO_FOCUS_CAN_DUCK = 1;
     // we have full audio focus
-    private static final int AUDIO_FOCUSED  = 2;
+    private static final int AUDIO_FOCUSED = 2;
 
     private final Context mContext;
     private final WifiManager.WifiLock mWifiLock;
@@ -156,6 +160,86 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
         }
     }
 
+    public void getAudioUrlAndPlay(final MediaSessionCompat.QueueItem currentMusic) {
+
+        new AsyncTask<String, Void, AudioMetaData>() {
+            @Override
+            protected AudioMetaData doInBackground(String... params) {
+                return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()));
+
+            }
+
+            @Override
+            protected void onPostExecute(AudioMetaData source) {
+                try {
+                    if (source != null) {
+
+                        mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
+                                MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
+                        if (source.getDurations() != null && !source.getDurations().isEmpty()) {
+                            String durStr = "";
+                            for (Long dur : source.getDurations()) {
+                                durStr = durStr + dur + ",";
+                            }
+                            if (!durStr.equalsIgnoreCase("")) {
+                                durStr = durStr.substring(0, durStr.length() - 1);
+                            }
+                            mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS,
+                                    MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), durStr);
+
+                        }
+                        if (mCallback != null) {
+                            mCallback.onMetaDataChanged();
+                        }
+                        initlizeMediplayer(source.getUrl());
+                        //getNextQueueItemAudioUrlAndUpdate();
+                        //LogHelper.e(TAG, source);
+
+                    } else {
+                        if (mCallback != null) {
+                            mCallback.onError("Youtube is restricting this song to download as of now, Please try playing different song");
+                        }
+                    }
+                } catch (Exception e) {
+                    if (mCallback != null) {
+                        mState = PlaybackStateCompat.STATE_PAUSED;
+                        mCallback.onMetaDataChanged();
+                        mCallback.onPlaybackStatusChanged(mState);
+                        mCallback.onError("Youtube is restricting this song to download as of now, Please try playing different song");
+                    }
+                }
+
+            }
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
+
+    }
+
+    private void initlizeMediplayer(String source) {
+        try {
+            createMediaPlayerIfNeeded();
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mMediaPlayer.setDataSource(source);
+
+            // Starts preparing the media player in the background. When
+            // it's done, it will call our OnPreparedListener (that is,
+            // the onPrepared() method on this class, since we set the
+            // listener to 'this'). Until the media player is prepared,
+            // we *cannot* call start() on it!
+            mMediaPlayer.prepareAsync();
+
+            mState = PlaybackStateCompat.STATE_BUFFERING;
+
+            if (mCallback != null) {
+                mCallback.onPlaybackStatusChanged(mState);
+            }
+        } catch (Exception ex) {
+            LogHelper.e(TAG, ex, "Exception in playing song");
+            if (mCallback != null) {
+                mCallback.onError(ex.getMessage());
+            }
+        }
+    }
+
     @Override
     public void play(QueueItem item) {
         mPlayOnFocusGain = true;
@@ -178,40 +262,18 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
 
             //noinspection ResourceType
             String source = track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
-
-            try {
-                createMediaPlayerIfNeeded();
-
-                mState = PlaybackStateCompat.STATE_BUFFERING;
-
-                mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                mMediaPlayer.setDataSource(source);
-
-                    // Starts preparing the media player in the background. When
-                    // it's done, it will call our OnPreparedListener (that is,
-                    // the onPrepared() method on this class, since we set the
-                    // listener to 'this'). Until the media player is prepared,
-                    // we *cannot* call start() on it!
-                mMediaPlayer.prepareAsync();
-
-
-
-
-
-                // If we are streaming from the internet, we want to hold a
-                // Wifi lock, which prevents the Wifi radio from going to
-                // sleep while the song is playing.
-                mWifiLock.acquire();
-
-                if (mCallback != null) {
-                    mCallback.onPlaybackStatusChanged(mState);
-                }
-
-            } catch (Exception ex) {
-                LogHelper.e(TAG, ex, "Exception playing song");
-                if (mCallback != null) {
-                    mCallback.onError(ex.getMessage());
-                }
+            // If we are streaming from the internet, we want to hold a
+            // Wifi lock, which prevents the Wifi radio from going to
+            // sleep while the song is playing.
+            mWifiLock.acquire();
+            mState = PlaybackStateCompat.STATE_CONNECTING;
+            if (mCallback != null) {
+                mCallback.onPlaybackStatusChanged(mState);
+            }
+            if (source == null) {
+                getAudioUrlAndPlay(item);
+            } else {
+                initlizeMediplayer(source);
             }
         }
     }
@@ -327,7 +389,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             // If we were playing when we lost focus, we need to resume playing.
             if (mPlayOnFocusGain) {
                 if (mMediaPlayer != null && !mMediaPlayer.isPlaying()) {
-                    LogHelper.d(TAG,"configMediaPlayerState startMediaPlayer. seeking to ",
+                    LogHelper.d(TAG, "configMediaPlayerState startMediaPlayer. seeking to ",
                             mCurrentPosition);
                     if (mCurrentPosition == mMediaPlayer.getCurrentPosition()) {
                         mMediaPlayer.start();
@@ -445,7 +507,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
      * already exists.
      */
     private void createMediaPlayerIfNeeded() {
-        LogHelper.d(TAG, "createMediaPlayerIfNeeded. needed? ", (mMediaPlayer==null));
+        LogHelper.d(TAG, "createMediaPlayerIfNeeded. needed? ", (mMediaPlayer == null));
         if (mMediaPlayer == null) {
             mMediaPlayer = new MediaPlayer();
 
@@ -471,7 +533,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
      * "foreground service" status, the wake locks and possibly the MediaPlayer.
      *
      * @param releaseMediaPlayer Indicates whether the Media Player should also
-     *            be released or not
+     *                           be released or not
      */
     private void relaxResources(boolean releaseMediaPlayer) {
         LogHelper.d(TAG, "relaxResources. releaseMediaPlayer=", releaseMediaPlayer);

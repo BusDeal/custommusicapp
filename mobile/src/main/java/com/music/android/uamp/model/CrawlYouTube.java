@@ -130,7 +130,7 @@ public class CrawlYouTube {
                     .userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0")
                     .timeout(5000)
                     .get();
-            LogHelper.e("Tag","Time to load main page"+(System.currentTimeMillis()-currentTimeMilisec)/1000);
+            LogHelper.e("Tag","Time to load main page "+(float)(System.currentTimeMillis()-currentTimeMilisec)/1000);
             String title=doc.title();
             Element element=doc.getElementById("player-mole-container");
             if(element == null){
@@ -164,11 +164,12 @@ public class CrawlYouTube {
                         if(data == null){
                             return null;
                         }
-                        LogHelper.e("Tag","TIme took to load javascript "+(System.currentTimeMillis()-currentTimeMilisec)/1000);
+                        LogHelper.e("Tag","TIme took to load javascript "+(float)((System.currentTimeMillis()-currentTimeMilisec)/1000));
                         findSignatureCode(data);
                         // System.out.print(js.html());
                     }
                 }
+                Long currentTimeMilisec1= System.currentTimeMillis();
                 String sep1 = "%2C", sep2 = "%26", sep3 = "%3D";
                 if (videoFormats.contains(",") ) {
                     sep1 = ",";
@@ -290,6 +291,7 @@ public class CrawlYouTube {
                         e.printStackTrace();
                     }
                 }
+                LogHelper.e("Tag","Time to crwal after getting signature "+(float)(System.currentTimeMillis()-currentTimeMilisec1)/1000);
                 Gson gson=new GsonBuilder()
                         .disableHtmlEscaping()
                         .create();

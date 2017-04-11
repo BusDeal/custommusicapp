@@ -43,7 +43,7 @@ public class SearchSuggestion {
 
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
     private static LruCache<String, List<String>> suggestionAutoText = new LruCache<>(100);
-    //private final Tracker mTracker;
+    private final Tracker mTracker;
 
     private SearchView searchView;
     private Context context;
@@ -54,8 +54,12 @@ public class SearchSuggestion {
         this.context = context;
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
 
-        /*GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
-        analytics.setLocalDispatchPeriod(30);*/
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+        analytics.setLocalDispatchPeriod(600);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
     }
 
     public static void addSelectedSuggestions(LruCache<String, Integer> suggestionSelected) {
@@ -185,6 +189,11 @@ public class SearchSuggestion {
                     suggestionSelected.put(suggestion, oldSuggestion + 1);
                 }*/
 
+                mTracker.send(new HitBuilders.EventBuilder()
+                        .setCategory("Global Search")
+                        .setAction("search")
+                        .setLabel(suggestion)
+                        .build());
                 Bundle bundle = new Bundle();
                 bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, suggestion);
                 bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "search");

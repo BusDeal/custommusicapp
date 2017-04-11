@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
@@ -165,7 +166,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
     private boolean mIsConnectedToCar;
     private BroadcastReceiver mCarConnectionReceiver;
     private DownLoadManager downloadManager;
-    //private Tracker mTracker;
+    private Tracker mTracker;
 
     /*
      * (non-Javadoc)
@@ -185,9 +186,14 @@ public class MusicService extends MediaBrowserServiceCompat implements
 
         mPackageValidator = new PackageValidator(this);
 
-        /*GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
-        analytics.setLocalDispatchPeriod(10*60);*/
-
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
+        analytics.setLocalDispatchPeriod(10*60);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        //mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
 
 // Build and send exception.
 
@@ -430,6 +436,11 @@ public class MusicService extends MediaBrowserServiceCompat implements
                 });
             }
         } catch (Exception e) {
+            mTracker.send(new HitBuilders.ExceptionBuilder()
+                    .setDescription(new StandardExceptionParser(this, null)
+                            .getDescription(Thread.currentThread().getName(), e))
+                    .setFatal(false)
+                    .build());
             result.sendResult(null);
         }
     }

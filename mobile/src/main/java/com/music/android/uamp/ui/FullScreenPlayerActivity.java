@@ -163,7 +163,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 }
             };
     private Boolean isDownLoading = false;
-    //private Tracker mTracker;
+    private Tracker mTracker;
     private FirebaseAnalytics mFirebaseAnalytics;
     private ProgressWheel mProgressWeel;
     private long fastForwardData;
@@ -207,11 +207,11 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         NetworkHelper.setScreenOff(this);
 
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        //mTracker = application.getDefaultTracker();
+        mTracker = application.getDefaultTracker();
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-        //mTracker = application.getDefaultTracker();
-        /*mTracker.setScreenName("FullScreenPlayerActivity");
-        mTracker.send(new HitBuilders.ScreenViewBuilder().build());*/
+        mTracker = application.getDefaultTracker();
+        mTracker.setScreenName("FullScreenPlayerActivity");
+        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         NetworkHelper.setScreenOff(this);
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
@@ -322,8 +322,6 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         }
 
 
-        mMediaBrowser = new MediaBrowserCompat(this,
-                new ComponentName(this, MusicService.class), mConnectionCallback, null);
         String tmpMediaId = null;
         if (getIntent() != null) {
             MediaDescriptionCompat description = getIntent().getParcelableExtra(
@@ -492,9 +490,9 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     @Override
     public void onStart() {
         super.onStart();
-        if (mMediaBrowser != null) {
-            mMediaBrowser.connect();
-        }
+        mMediaBrowser = new MediaBrowserCompat(this,
+                new ComponentName(this, MusicService.class), mConnectionCallback, null);
+        mMediaBrowser.connect();
     }
 
     @Override
@@ -663,6 +661,13 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             intent.putExtra("mediaId", item.getDescription().getMediaId());
         }
 
+        mTracker.setScreenName("FullScreenPlayerActivity");
+        mTracker.send(new HitBuilders.EventBuilder()
+                .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                .setAction("play")
+                .setLabel(item.getMediaId())
+                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                .build());
         Bundle bundle = new Bundle();
         bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
         bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));

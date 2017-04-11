@@ -100,7 +100,7 @@ public class MusicPlayerActivity extends BaseActivity
 
     private Bundle mVoiceSearchParams;
     private SearchView searchView;
-    //private Tracker mTracker;
+    private Tracker mTracker;
     private static LruCache<String, Integer> suggestionSelected = new LruCache<>(20);
     private FirebaseAnalytics mFirebaseAnalytics;
 
@@ -126,7 +126,7 @@ public class MusicPlayerActivity extends BaseActivity
         NetworkHelper.setScreenOff(this);
         LogHelper.d(TAG, "Activity onCreate");
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        //mTracker = application.getDefaultTracker();
+        mTracker = application.getDefaultTracker();
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         initializeToolbar();
 
@@ -180,6 +180,13 @@ public class MusicPlayerActivity extends BaseActivity
             intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                     item.getDescription());
 
+            mTracker.set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId());
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("play")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
             bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
@@ -191,6 +198,12 @@ public class MusicPlayerActivity extends BaseActivity
                     .prepareFromMediaId(item.getMediaId(), null);
             startActivity(intent);
         } else if (item.isBrowsable()) {
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("browse")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
             bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));

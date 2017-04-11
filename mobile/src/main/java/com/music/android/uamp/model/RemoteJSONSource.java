@@ -77,15 +77,15 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
     private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs"};
-    //private final Tracker mTracker;
+    private final Tracker mTracker;
     private Context context;
 
     public RemoteJSONSource(Context context) {
         this.context = context;
-       /* GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
         analytics.setLocalDispatchPeriod(600);
-        mTracker = analytics.newTracker("UA-88784216-1");*/ // Replace with actual tracker id
-        //mTracker.enableExceptionReporting(true);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
         //mTracker.enableAdvertisingIdCollection(true);
         //mTracker.enableAutoActivityTracking(true);
         //mTracker = application.getDefaultTracker();
@@ -179,7 +179,7 @@ public class RemoteJSONSource implements MusicProviderSource {
     @Override
     public AudioMetaData getAudioSourceUrl(String videoId) {
 
-        LogHelper.e(TAG, "", audioUrl + "source=" + videoId);
+
         JSONObject jsonObject = null;
         try {
             Long currentTimeMilisec = System.currentTimeMillis();
@@ -190,14 +190,20 @@ public class RemoteJSONSource implements MusicProviderSource {
                 if (data != null) {
                     jsonObject = new JSONObject(data);
                 } else {
-               /* mTracker.send(new HitBuilders.EventBuilder()
+                mTracker.send(new HitBuilders.EventBuilder()
                         .setCategory("server")
                         .setAction("audioUrl")
                         .setLabel(videoId)
-                        .build());*/
+                        .build());
                     jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
                 }
             } else {
+                mTracker.send(new HitBuilders.EventBuilder()
+                        .setCategory("server")
+                        .setAction("audioUrl")
+                        .setLabel(videoId)
+                        .build());
+                LogHelper.e(TAG, "", audioUrl + "source=" + videoId);
                 jsonObject = fetchJSONFromUrl(audioUrl + "source=" + videoId);
             }
             LogHelper.e("Tag", "Total time took to crawl " + (System.currentTimeMillis() - currentTimeMilisec) / 1000);
@@ -381,7 +387,8 @@ public class RemoteJSONSource implements MusicProviderSource {
             }
             return new JSONObject(sb.toString());
         } catch (JSONException e) {
-            throw e;
+            LogHelper.e(TAG, "Failed to parse the json for media list", e);
+            return null;
         } catch (Exception e) {
             LogHelper.e(TAG, "Failed to parse the json for media list", e);
             return null;

@@ -85,7 +85,7 @@ public class PlaybackManager implements Playback.Callback {
 
             //noinspection ResourceType
             String source = track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
-            if (source != null) {
+            if (true) {
                 mServiceCallback.onPlaybackStart();
                 mPlayback.play(currentMusic);
             } else {
@@ -311,6 +311,11 @@ public class PlaybackManager implements Playback.Callback {
     @Override
     public void onPlaybackStatusChanged(int state) {
         updatePlaybackState(null);
+    }
+
+    @Override
+    public void onMetaDataChanged(){
+        mQueueManager.updateMetadata();
     }
 
     @Override
