@@ -27,11 +27,6 @@ import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.Tracker;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.RemoteJSONSource;
-import com.parse.Parse;
-import com.parse.ParseException;
-import com.parse.ParseInstallation;
-import com.parse.ParsePush;
-import com.parse.SaveCallback;
 
 import org.json.JSONException;
 import org.json.JSONObject;

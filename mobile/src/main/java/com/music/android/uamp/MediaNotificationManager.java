@@ -26,6 +26,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.MediaMetadataRetriever;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
@@ -41,9 +42,12 @@ import android.view.View;
 
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.ui.MusicPlayerActivity;
+import com.music.android.uamp.utils.BitmapHelper;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.ResourceHelper;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -340,7 +344,7 @@ public class MediaNotificationManager extends BroadcastReceiver {
             return null;
         }
 
-        String durationStr = mMetadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+        String durationStr = mMetadata.getString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS);
         if (durationStr != null) {
             String durs[] = durationStr.split(",");
             for (String str : durs) {
@@ -424,12 +428,39 @@ public class MediaNotificationManager extends BroadcastReceiver {
                         mService.getString(R.string.stop_casting), mStopCastIntent);
             }
         }
-
         setNotificationPlaybackState(notificationBuilder);
         if (fetchArtUrl != null) {
-            fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
-        }
+            if(fetchArtUrl.startsWith("/")){
+                File imgFile = new File(fetchArtUrl);
+                if(imgFile.exists()) {
+                    try {
+                        art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                        if(art == null){
+                            MediaMetadataRetriever metaRetriver = new MediaMetadataRetriever();
+                            metaRetriver.setDataSource(fetchArtUrl);
+                            try {
+                                byte artByte[] = metaRetriver.getEmbeddedPicture();
+                                if(artByte != null) {
+                                    art = BitmapFactory.decodeByteArray(artByte, 0, artByte.length);
+                                    art = BitmapHelper.scaleBitmap(art,
+                                            800, 480);
+                                }
 
+                            }catch(Exception e1){
+                                e1.printStackTrace();
+                            }
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                notificationBuilder.setLargeIcon(art);
+            }else {
+
+
+                fetchBitmapFromURLAsync(fetchArtUrl, notificationBuilder);
+            }
+        }
         return notificationBuilder.build();
     }
 

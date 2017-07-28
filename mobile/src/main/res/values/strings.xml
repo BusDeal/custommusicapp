@@ -47,6 +47,8 @@
     <string name="drawer_allmusic_title">All Music</string>
     <string name="drawer_playlists_title">Downloads</string>
     <string name="drawer_favorites_title">Favorites</string>
+    <string name="drawer_history_title">History</string>
+    <string name="drawer_local_title">Local</string>
     <string name="drawer_feedback_title">Feedback</string>
     <string name="now_playing">Now Playing</string>
     <string name="background_image_str">Background image for album art</string>
@@ -63,7 +65,7 @@
     <string name="signed_in_fmt">signin</string>
     <string name="desc_google_icon">description</string>
     <string name="current_splash">currentsplash</string>
-    <string name="langselection">Please select language</string>
+    <string name="langselection">Please choose your preferred language songs</string>
     <string name="choose">choose</string>
     <string name="connecting">connecting</string>
     <string name="add_favorite">Add Favourite</string>

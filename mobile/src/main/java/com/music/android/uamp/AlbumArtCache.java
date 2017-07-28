@@ -121,6 +121,16 @@ public final class AlbumArtCache {
         }.execute();
     }
 
+    public void setBitMap(Bitmap bitmap, String artUrl){
+        Bitmap[] bitmaps;
+        Bitmap icon = BitmapHelper.scaleBitmap(bitmap,
+                MAX_ART_WIDTH_ICON, MAX_ART_HEIGHT_ICON);
+        Bitmap max = BitmapHelper.scaleBitmap(bitmap,
+                MAX_ART_WIDTH, MAX_ART_HEIGHT);
+        bitmaps = new Bitmap[] {bitmap, icon};
+        mCache.put(artUrl, bitmaps);
+    }
+
     public static abstract class FetchListener {
         public abstract void onFetched(String artUrl, Bitmap bigImage, Bitmap iconImage);
         public void onError(String artUrl, Exception e) {

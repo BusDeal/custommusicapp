@@ -33,8 +33,11 @@ public class MediaIDHelper {
     public static final String MEDIA_ID_MUSICS_BY_VIDEOID = "__BY_VIDEOID__";
     public static final String MEDIA_ID_MUSICS_BY_DOWNLOAD = "__BY_DOWNLOAD__";
     public static final String MEDIA_ID_MUSICS_BY_FAVOURITE = "__BY_FAVOURITE__";
+    public static final String MEDIA_ID_MUSICS_BY_HISTORY = "__BY_HISTORY__";
     public static final String MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID = "__BY_FAVOURITE_VIDEOID__";
     public static final String MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID = "__BY_DOWNLOAD__VIDEOID_";
+    public static final String MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID = "__BY_HISTORY__VIDEOID_";
+    public static final String MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID = "__BY_LOCAL__VIDEOID_";
 
     public static final String MEDIA_ID_ADD_TO_QUEUE = "__BY_DOWNLOAD__VIDEOID_";
 

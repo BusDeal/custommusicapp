@@ -30,12 +30,16 @@ import android.util.LruCache;
 import com.music.android.uamp.R;
 import com.music.android.uamp.playback.DownLoadManager;
 import com.music.android.uamp.playback.FavouriteManager;
+import com.music.android.uamp.playback.HistoryManager;
+import com.music.android.uamp.playback.LocalMediaManager;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,6 +54,10 @@ import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWN
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
 import static com.music.android.uamp.utils.MediaIDHelper.createMediaID;
@@ -69,6 +77,8 @@ public class MusicProvider {
     private Map<String, MutableMediaMetadata> mMusicListById;
     private Map<String, MutableMediaMetadata> downloadMusicList;
     private Map<String, MediaMetadataCompat> mFavoriteTracks;
+    private Map<String, MediaMetadataCompat> mHistoryTracks;
+    private Map<String, MediaMetadataCompat> mLocalTracks;
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListBySearch;
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListByVideoId;
     private LruCache<String, Map<String, MutableMediaMetadata>> mMusicListBySearch = new LruCache<>(10);
@@ -105,6 +115,8 @@ public class MusicProvider {
         mMusicListById = new LinkedHashMap<>();
         downloadMusicList = DownLoadManager.getDownloadedMedia(context);
         mFavoriteTracks = FavouriteManager.loadFavourites(context);
+        mHistoryTracks = HistoryManager.loadHistories(context);
+        mLocalTracks= new LinkedHashMap<>();
     }
 
     /**
@@ -167,6 +179,24 @@ public class MusicProvider {
         return shuffled;
     }
 
+    private Iterable<MediaMetadataCompat> getHistoryMusic() {
+        mHistoryTracks = HistoryManager.getHistory();
+        List<MediaMetadataCompat> shuffled = new ArrayList<>(mHistoryTracks.size());
+        for (MediaMetadataCompat mediaMetadataCompat : mHistoryTracks.values()) {
+            shuffled.add(mediaMetadataCompat);
+        }
+        return shuffled;
+    }
+
+    private Iterable<MediaMetadataCompat> getLocalTrackMusic() {
+        mLocalTracks = LocalMediaManager.getLocalMedia(context);
+        List<MediaMetadataCompat> shuffled = new ArrayList<>(mLocalTracks.size());
+        for (MediaMetadataCompat mediaMetadataCompat : mLocalTracks.values()) {
+            shuffled.add(mediaMetadataCompat);
+        }
+        return shuffled;
+    }
+
     private Iterable<MediaMetadataCompat> getYoutubeSearchMusic(String query) {
         Map<String, MutableMediaMetadata> data = mMusicListBySearch.get(query);
 
@@ -196,12 +226,20 @@ public class MusicProvider {
             return tracks;
         }
         List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(downloadMusicList.size());
+        List<MediaMetadataCompat> beforeList = new ArrayList<>(downloadMusicList.size());
+        int flag=0;
         for (MutableMediaMetadata mutableMetadata : downloadMusicList.values()) {
             if (mutableMetadata.trackId.equalsIgnoreCase(videoId)) {
+                flag=1;
                 continue;
             }
-            mutableMediaMetadataList.add(mutableMetadata.metadata);
+            if(flag == 0){
+                beforeList.add(mutableMetadata.metadata);
+            }else{
+                mutableMediaMetadataList.add(mutableMetadata.metadata);
+            }
         }
+        mutableMediaMetadataList.addAll(beforeList);
         return mutableMediaMetadataList;
     }
 
@@ -213,6 +251,36 @@ public class MusicProvider {
             }
             mutableMediaMetadataList.add(mediaMetadataCompat);
         }
+        return mutableMediaMetadataList;
+    }
+
+    public Iterable<MediaMetadataCompat> getHistoryMusicTracks(String videoId) {
+        List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(mHistoryTracks.size());
+        for (MediaMetadataCompat mediaMetadataCompat : mHistoryTracks.values()) {
+            if (mediaMetadataCompat.getDescription().getMediaId().equalsIgnoreCase(videoId)) {
+                continue;
+            }
+            mutableMediaMetadataList.add(mediaMetadataCompat);
+        }
+        return mutableMediaMetadataList;
+    }
+
+    public Iterable<MediaMetadataCompat> getLocalMusicTracks(String videoId) {
+        List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(mLocalTracks.size());
+        List<MediaMetadataCompat> beforeList = new ArrayList<>(downloadMusicList.size());
+        int flag=0;
+        for (MediaMetadataCompat mediaMetadataCompat : mLocalTracks.values()) {
+            if (mediaMetadataCompat.getDescription().getMediaId().equalsIgnoreCase(videoId)) {
+                flag=1;
+                continue;
+            }
+            if(flag == 0){
+                beforeList.add(mediaMetadataCompat);
+            }else{
+                mutableMediaMetadataList.add(mediaMetadataCompat);
+            }
+        }
+        mutableMediaMetadataList.addAll(beforeList);
         return mutableMediaMetadataList;
     }
 
@@ -251,6 +319,28 @@ public class MusicProvider {
 
     private MutableMediaMetadata findMediaFromFavouritesList(String videoId) {
         MediaMetadataCompat mediaMetadataCompat = mFavoriteTracks.get(videoId);
+        if(mediaMetadataCompat == null){
+            return null;
+        }
+        MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
+        return mutableMediaMetadata;
+    }
+
+    private MutableMediaMetadata findMediaFromHistoryList(String videoId) {
+        MediaMetadataCompat mediaMetadataCompat = mHistoryTracks.get(videoId);
+        if(mediaMetadataCompat == null){
+            return null;
+        }
+        MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
+        return mutableMediaMetadata;
+    }
+
+    private MutableMediaMetadata findMediaFromLocalTrackList(String videoId) {
+        mLocalTracks=LocalMediaManager.getLocalMedia(context);
+        MediaMetadataCompat mediaMetadataCompat = mLocalTracks.get(videoId);
+        if(mediaMetadataCompat == null){
+            return null;
+        }
         MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
         return mutableMediaMetadata;
     }
@@ -342,6 +432,12 @@ public class MusicProvider {
         if (mutableMediaMetadata == null) {
             mutableMediaMetadata = findMediaFromFavouritesList(musicId);
         }
+        if (mutableMediaMetadata == null) {
+            mutableMediaMetadata = findMediaFromLocalTrackList(musicId);
+        }
+        if (mutableMediaMetadata == null) {
+            mutableMediaMetadata = findMediaFromHistoryList(musicId);
+        }
         return mutableMediaMetadata;
     }
 
@@ -388,7 +484,7 @@ public class MusicProvider {
     public synchronized void updateDurations(String musicId, String duration) {
         MediaMetadataCompat metadata = getMusic(musicId);
         metadata = new MediaMetadataCompat.Builder(metadata)
-                .putString(RemoteJSONSource.CUSTOM_METADATA_TRACKS_DURATIONS, duration)
+                .putString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS, duration)
                 .build();
 
         MutableMediaMetadata mutableMetadata = getMutableMusic(musicId);
@@ -410,6 +506,14 @@ public class MusicProvider {
         FavouriteManager.saveFavourites(context);
     }
 
+    public void setHistoryTrack(String musicId, MediaMetadataCompat mediaMetadataCompat) {
+        mHistoryTracks = HistoryManager.getHistory();
+        if (mediaMetadataCompat != null ) {
+            HistoryManager.addHistoryItem(musicId, mediaMetadataCompat);
+            HistoryManager.saveHistory(context);
+        }
+    }
+
     public boolean isInitialized() {
         return mCurrentState == State.INITIALIZED;
     }
@@ -418,6 +522,9 @@ public class MusicProvider {
         return mFavoriteTracks.containsKey(musicId);
     }
 
+    public boolean isHistory(String musicId) {
+        return mHistoryTracks.containsKey(musicId);
+    }
     /**
      * Get the list of music tracks from a server and caches the track information
      * for future reference, keying tracks by musicId and grouping by genre.
@@ -480,7 +587,7 @@ public class MusicProvider {
                 String musicId = item.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID);
                 if (downloadMusicList.containsKey(musicId)) {
                     item = new MediaMetadataCompat.Builder(item)
-                            .putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, "true")
+                            .putString(Constants.CUSTOM_METADATA_DOWNLOADED, "true")
                             .build();
                 }
                 map.put(musicId, new MutableMediaMetadata(musicId, item));
@@ -537,16 +644,24 @@ public class MusicProvider {
             for (MediaMetadataCompat metadata : getDownloadedMusic()) {
                 mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID, metadata));
             }
-
-            //mediaItems.add(createBrowsableMediaItemForRoot(resources));
-
         }
         if (MEDIA_ID_MUSICS_BY_FAVOURITE.equals(mediaId)) {
             for (MediaMetadataCompat metadata : getFavoriteMusic()) {
                 mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID, metadata));
             }
 
-        } else if (MEDIA_ID_MUSICS_BY_GENRE.equals(mediaId)) {
+        }
+        if (MEDIA_ID_MUSICS_BY_HISTORY.equals(mediaId)) {
+            for (MediaMetadataCompat metadata : getHistoryMusic()) {
+                mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID, metadata));
+            }
+        }
+        if (MEDIA_ID_MUSICS_BY_LOCAL.equals(mediaId)) {
+            for (MediaMetadataCompat metadata : getLocalTrackMusic()) {
+                mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID, metadata));
+            }
+        }
+        else if (MEDIA_ID_MUSICS_BY_GENRE.equals(mediaId)) {
             for (String genre : getGenres()) {
                 mediaItems.add(createBrowsableMediaItemForGenre(genre, resources));
             }
@@ -651,19 +766,24 @@ public class MusicProvider {
         bob.setIconBitmap(copy.getDescription().getIconBitmap());
         bob.setIconUri(copy.getDescription().getIconUri());
         Bundle bundle = new Bundle();
+        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DATE,new Date().getTime());
         bundle.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
-        bundle.putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, metadata.getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED));
-        /*if (copy.getDescription().getMediaId() != null && MediaIDHelper.extractBrowseCategoryTypeFromMediaID(copy.getDescription().getMediaId()).equalsIgnoreCase(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
-            bundle.putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, "true");
-        }*/
-        bundle.putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE));
+        bundle.putString(Constants.CUSTOM_METADATA_DOWNLOADED, metadata.getString(Constants.CUSTOM_METADATA_DOWNLOADED));
+        bundle.putString(Constants.CUSTOM_METADATA_TRACK_SOURCE, metadata.getString(Constants.CUSTOM_METADATA_TRACK_SOURCE));
         if (downloadMusicList.containsKey(musicId)) {
-            bundle.putString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED, "true");
+            bundle.putString(Constants.CUSTOM_METADATA_DOWNLOADED, "true");
         }
         if (mFavoriteTracks.containsKey(musicId)) {
-            bundle.putString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE, "true");
+            bundle.putString(Constants.CUSTOM_METADATA_FAVOURITE, "true");
         }
-        bundle.putString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS, metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS));
+        if (mHistoryTracks.containsKey(musicId)) {
+            bundle.putString(Constants.CUSTOM_METADATA_HISTORY, "true");
+        }
+        if (mLocalTracks.containsKey(musicId)) {
+            bundle.putString(Constants.CUSTOM_METADATA_LOCAL, "true");
+            bundle.putString(Constants.CUSTOM_METADATA_DOWNLOADED, "true");
+        }
+        bundle.putString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS, metadata.getString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS));
         bob.setExtras(bundle);
         MediaDescriptionCompat mDescription = bob.build();
 

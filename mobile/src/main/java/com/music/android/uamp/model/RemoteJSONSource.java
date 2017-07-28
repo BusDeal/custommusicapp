@@ -18,13 +18,12 @@ package com.music.android.uamp.model;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.support.v4.media.MediaMetadataCompat;
 
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.HitBuilders;
-import com.google.android.gms.analytics.StandardExceptionParser;
 import com.google.android.gms.analytics.Tracker;
-import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.utils.Connectivity;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.ParserHelper;
@@ -43,6 +42,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +51,7 @@ import java.util.Random;
 import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
 
 /**
  * Utility class to get a list of MusicTrack's based on a server-side JSON
@@ -61,6 +62,7 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String TAG = LogHelper.makeLogTag(RemoteJSONSource.class);
 
     private static String audioUrl = "http://kmusic.in:8080/watch?";
+    private static String queryData = "http://kmusic.in/version/query.json";
     private static String duration = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&id=";
     protected static String CATALOG_URL =
             "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=AIzaSyD3UusulV2oYNHYwKjPBrv0ZDXdZ3CX6Ys&maxResults=20";
@@ -76,9 +78,10 @@ public class RemoteJSONSource implements MusicProviderSource {
     private static final String JSON_TRACK_NUMBER = "trackNumber";
     private static final String JSON_TOTAL_TRACK_COUNT = "totalTrackCount";
     private static final String JSON_DURATION = "duration";
-    private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs"};
+    private static String queryList[] = {"songs", "top 20 songs", "latest songs", "top 10 songs of the week", "melody songs", "best 20 songs", "classical songs"};
     private final Tracker mTracker;
     private Context context;
+    private static Map<String,Personalization> langHomePage=new HashMap<>();
 
     public RemoteJSONSource(Context context) {
         this.context = context;
@@ -86,9 +89,48 @@ public class RemoteJSONSource implements MusicProviderSource {
         analytics.setLocalDispatchPeriod(600);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
         mTracker.enableExceptionReporting(true);
+        getPersonalizationBasedOnLang();
         //mTracker.enableAdvertisingIdCollection(true);
         //mTracker.enableAutoActivityTracking(true);
         //mTracker = application.getDefaultTracker();
+    }
+
+
+    public void getPersonalizationBasedOnLang(){
+        new AsyncTask<String, Void, JSONObject>() {
+            @Override
+            protected JSONObject doInBackground(String... params) {
+
+                try {
+                    return fetchJSONFromUrl(queryData);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(JSONObject jsonObject) {
+                if(jsonObject == null){
+                    return;
+                }
+                try {
+                    JSONArray jsonTracks = jsonObject.getJSONArray("dataList");
+
+                    if (jsonTracks != null) {
+                        for (int j = 0; j < jsonTracks.length(); j++) {
+                            JSONObject data = jsonTracks.getJSONObject(j);
+                            Personalization personalization=new Personalization();
+                            personalization.setLanguage(data.getString("language"));
+                            personalization.setQuery(data.getString("query"));
+                            langHomePage.put(data.getString("language"),personalization);
+                        }
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
     }
 
     @Override
@@ -107,7 +149,11 @@ public class RemoteJSONSource implements MusicProviderSource {
                 try {
                     String query = queryList[num];
                     if (!language.isEmpty()) {
-                        query = getRandomLang(language) + " " + query;
+                        String lang=getRandomLang(language);
+                        query = lang + " " + query;
+                        if(langHomePage.containsKey(lang) && langHomePage.get(lang).getQuery() != null && !langHomePage.get(lang).getQuery().isEmpty()  ){
+                            query = langHomePage.get(lang).getQuery();
+                        }
                     }
                     apiUrl = CATALOG_URL + "&q=" + URLEncoder.encode(query, "utf-8");
                 } catch (UnsupportedEncodingException e) {
@@ -115,11 +161,14 @@ public class RemoteJSONSource implements MusicProviderSource {
                 }
             } else if (retrieveType.SEARCH == retrieveType) {
                 StringBuilder sb = new StringBuilder();
+                String prefix = "";
                 for (String param : params) {
+                    sb.append(prefix);
+                    prefix=" ";
                     sb.append(param);
                 }
                 if (!(sb.toString().contains("songs") || sb.toString().contains("song") || sb.toString().contains("jukebox"))) {
-                    sb.append("songs");
+                    sb.append(" songs");
                 }
                 String query = sb.toString();
                 try {
@@ -136,7 +185,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                 apiUrl = CATALOG_URL + ("&relatedToVideoId=" + sb.toString());
             }
 
-            //LogHelper.e(TAG, "catalog url " + apiUrl);
+            LogHelper.e(TAG, "catalog url " + apiUrl);
             int slashPos = CATALOG_URL.lastIndexOf('/');
             String path = CATALOG_URL.substring(0, slashPos + 1);
             JSONObject jsonObj = fetchJSONFromUrl(apiUrl);

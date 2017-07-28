@@ -34,6 +34,7 @@ import com.music.android.uamp.MusicService;
 import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 
@@ -173,9 +174,9 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             protected void onPostExecute(AudioMetaData source) {
                 try {
                     if (source != null) {
-
-                        mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE,
-                                MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), source.getUrl());
+                       String musicId= MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId());
+                        mMusicProvider.updateSource(Constants.CUSTOM_METADATA_TRACK_SOURCE,musicId
+                                , source.getUrl());
                         if (source.getDurations() != null && !source.getDurations().isEmpty()) {
                             String durStr = "";
                             for (Long dur : source.getDurations()) {
@@ -184,7 +185,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
                             if (!durStr.equalsIgnoreCase("")) {
                                 durStr = durStr.substring(0, durStr.length() - 1);
                             }
-                            mMusicProvider.updateSource(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS,
+                            mMusicProvider.updateSource(Constants.CUSTOM_METADATA_TRACKS_DURATIONS,
                                     MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), durStr);
 
                         }
@@ -255,13 +256,14 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
         if (mState == PlaybackStateCompat.STATE_PAUSED && !mediaHasChanged && mMediaPlayer != null) {
             configMediaPlayerState();
         } else {
+            String musicID=MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
             mState = PlaybackStateCompat.STATE_STOPPED;
             relaxResources(false); // release everything except MediaPlayer
             MediaMetadataCompat track = mMusicProvider.getMusic(
-                    MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()));
+                    musicID);
 
             //noinspection ResourceType
-            String source = track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
+            String source = track.getString(Constants.CUSTOM_METADATA_TRACK_SOURCE);
             // If we are streaming from the internet, we want to hold a
             // Wifi lock, which prevents the Wifi radio from going to
             // sleep while the song is playing.
@@ -275,6 +277,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             } else {
                 initlizeMediplayer(source);
             }
+            mMusicProvider.setHistoryTrack(musicID,track);
         }
     }
 

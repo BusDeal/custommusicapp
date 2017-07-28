@@ -23,6 +23,7 @@ import android.text.TextUtils;
 
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.google.android.gms.cast.MediaInfo;
@@ -244,7 +245,7 @@ public class CastPlayback implements Playback {
         mediaMetadata.addImage(image);
 
         //noinspection ResourceType
-        return new MediaInfo.Builder(track.getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE))
+        return new MediaInfo.Builder(track.getString(Constants.CUSTOM_METADATA_TRACK_SOURCE))
                 .setContentType(MIME_TYPE_AUDIO_MPEG)
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setMetadata(mediaMetadata)

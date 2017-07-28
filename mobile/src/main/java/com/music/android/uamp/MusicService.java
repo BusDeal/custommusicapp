@@ -45,12 +45,14 @@ import com.music.android.uamp.model.RetrieveType;
 import com.music.android.uamp.playback.CastPlayback;
 import com.music.android.uamp.playback.DownLoadManager;
 import com.music.android.uamp.playback.FavouriteManager;
+import com.music.android.uamp.playback.HistoryManager;
 import com.music.android.uamp.playback.LocalPlayback;
 import com.music.android.uamp.playback.Playback;
 import com.music.android.uamp.playback.PlaybackManager;
 import com.music.android.uamp.playback.QueueManager;
 import com.music.android.uamp.ui.NowPlayingActivity;
 import com.music.android.uamp.utils.CarHelper;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.TvHelper;
@@ -69,6 +71,10 @@ import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWN
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
@@ -308,7 +314,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         mPlaybackManager.handleStopRequest(null);
         mMediaNotificationManager.stopNotification();
         FavouriteManager.saveFavourites(getBaseContext());
-
+        HistoryManager.saveHistory(getBaseContext());
         if (mCastSessionManager != null) {
             mCastSessionManager.removeSessionManagerListener(mCastSessionManagerListener,
                     CastSession.class);
@@ -393,7 +399,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
                         }
                     });
                 }
-            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && (MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType))) {
                 final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
                 List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
                 if (list == null || list.isEmpty()) {
@@ -413,14 +419,74 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     mPlaybackManager.updatePlayBackQueue(parentMediaId);
                     result.sendResult(list);
                 }
-            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType)) {
+            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID.equalsIgnoreCase(categoryType)) {
+                final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+                MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(musicId);
+                if(mediaMetadataCompat.getString(Constants.CUSTOM_METADATA_LOCAL) != null){
+                    String searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ALBUM);
+                    if(searchQuery == null || searchQuery.isEmpty()){
+                        searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ARTIST);
+                    }
+                    if(searchQuery == null || searchQuery.isEmpty()){
+                        searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_TITLE);
+                        String  extensions[]={".mp3",".3gp",".flac",".ota",".ogg"};
+                        for(String staticExtension:extensions){
+                            if(searchQuery.contains(staticExtension)){
+                                searchQuery=searchQuery.replace(staticExtension,"");
+                                break;
+                            }
+                        }
+                    }
+                    searchQuery = searchQuery.replaceAll("[-+.^:,(){}0-9]","");
+                    List<MediaItem> list = mMusicProvider.getSearchList(searchQuery);
+                    if (list != null) {
+                        result.sendResult(list);
+                    } else {
+                        result.detach();
+                        final String finalSearchQuery = searchQuery;
+                        mMusicProvider.retrieveMediaAsync(RetrieveType.SEARCH, searchQuery, new MusicProvider.Callback() {
+                            @Override
+                            public void onMusicCatalogReady(boolean success) {
+                                result.sendResult(mMusicProvider.getSearchList(finalSearchQuery));
+                            }
+                        });
+                    }
+                    return;
+                }
+                List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
+                if (list == null || list.isEmpty()) {
+                    result.detach();
+                    mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
+                        @Override
+                        public void onMusicCatalogReady(boolean success) {
+                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                            List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
+                            if (items == null || items.isEmpty()) {
+                                items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
+                            }
+                            result.sendResult(items);
+                        }
+                    });
+                } else {
+                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                    result.sendResult(list);
+                }
+            }
+            else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType)) {
                 List<MediaItem> items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_FAVOURITE, getResources());
                 mPlaybackManager.updatePlayBackQueue(parentMediaId);
                 result.sendResult(items);
 
-            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
+            }  else if (categoryType != null && MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID.equalsIgnoreCase(categoryType)) {
+                List<MediaItem> items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_LOCAL, getResources());
+                mPlaybackManager.updatePlayBackQueue(parentMediaId);
+                result.sendResult(items);
+
+            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
             } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE.equalsIgnoreCase(categoryType)) {
+                result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
+            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
             } else if (mMusicProvider.isInitialized()) {
                 // if music library is ready, return immediately

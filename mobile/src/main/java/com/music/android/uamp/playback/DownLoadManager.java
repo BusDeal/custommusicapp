@@ -15,6 +15,7 @@ import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.model.MutableMediaMetadata;
+import com.music.android.uamp.utils.Constants;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -115,7 +116,7 @@ public class DownLoadManager {
             String id=cursor.getString(0);
             String tmpMusicId = data[1];
             if(tmpMusicId != null && tmpMusicId.equalsIgnoreCase(musicId)){
-                //manager.remove();
+                //manager.remove(cursor.getI);
             }
         }
     }
@@ -217,7 +218,7 @@ public class DownLoadManager {
                             .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
                             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                            .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
+                            .putString(Constants.CUSTOM_METADATA_TRACK_SOURCE, src)
                             .build();
 
                     MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);
@@ -231,7 +232,7 @@ public class DownLoadManager {
                             .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
                             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                            .putString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE, src)
+                            .putString(Constants.CUSTOM_METADATA_TRACK_SOURCE, src)
                             .build();
 
                     MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, mediaMetadataCompat);

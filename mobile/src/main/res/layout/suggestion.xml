@@ -9,7 +9,7 @@
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_search"
+        android:src="@android:drawable/ic_menu_search"
         android:layout_margin="5dp"
         android:id="@+id/searchImage" />
 

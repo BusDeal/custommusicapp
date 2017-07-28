@@ -55,6 +55,7 @@ import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProviderSource;
 import com.music.android.uamp.playback.PlaybackManager;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
@@ -140,7 +141,6 @@ public class MediaBrowserFragment extends Fragment {
                 @Override
                 public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
                     queueItems = queue;
-
                 }
             };
 
@@ -234,10 +234,19 @@ public class MediaBrowserFragment extends Fragment {
                         break;
                     case 1:
                         MediaBrowserCompat.MediaItem mediaItem = mBrowserAdapter.getItem(position);
-                        String srcUrl = mediaItem.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_TRACK_SOURCE);
+                        if(mediaItem == null){
+                            return false;
+                        }
+                        String srcUrl = mediaItem.getDescription().getExtras().getString(Constants.CUSTOM_METADATA_TRACK_SOURCE);
+                        if(srcUrl == null){
+                            return false;
+                        }
                         File file = new File(srcUrl);
-                        if (srcUrl != null && srcUrl.startsWith("/") && file.exists()) {
+                        if (srcUrl.startsWith("/") && file.exists()) {
                             boolean deleted = file.delete();
+                            if(mediaItem.getDescription().getIconUri() == null){
+                                return true;
+                            }
                             String artUrl = mediaItem.getDescription().getIconUri().toString();
                             file = new File(artUrl);
                             if (deleted && artUrl != null && artUrl.startsWith("/") && file.exists()) {
@@ -343,7 +352,7 @@ public class MediaBrowserFragment extends Fragment {
                 openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
                         0xCE)));
                 // set item width
-                openItem.setWidth(120);
+                openItem.setWidth(250);
                 // set a icon
                 openItem.setIcon(R.drawable.ic_favorite_border);
                 openItem.setTitle(R.string.add_favorite);
@@ -362,7 +371,7 @@ public class MediaBrowserFragment extends Fragment {
                     deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
                             0x3F, 0x25)));
                     // set item width
-                    deleteItem.setWidth(120);
+                    deleteItem.setWidth(250);
                     // set a icon
                     deleteItem.setTitle(R.string.delete_item);
                     deleteItem.setIcon(R.drawable.ic_delete);
@@ -556,10 +565,10 @@ public class MediaBrowserFragment extends Fragment {
             // current menu type
 
             MediaBrowserCompat.MediaItem item = getItem(position);
-            if (item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_FAVOURITE) != null) {
+            if (item.getDescription().getExtras().getString(Constants.CUSTOM_METADATA_FAVOURITE) != null) {
                 return 1;
             }
-            if (item.getDescription().getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null) {
+            if (item.getDescription().getExtras().getString(Constants.CUSTOM_METADATA_DOWNLOADED) != null) {
                 return 2;
             }
 

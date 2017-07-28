@@ -37,6 +37,7 @@ import android.widget.TextView;
 import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.MusicService;
 import com.music.android.uamp.R;
+import com.music.android.uamp.utils.FetchImageAsync;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 
@@ -133,6 +134,9 @@ public class PlaybackControlsFragment extends Fragment {
     }
 
     public void onConnected() {
+        if(((FragmentActivity) getActivity()) == null){
+            return;
+        }
         MediaControllerCompat controller = ((FragmentActivity) getActivity())
                 .getSupportMediaController();
         LogHelper.d(TAG, "onConnected, mediaController==null? ", controller == null);
@@ -156,12 +160,16 @@ public class PlaybackControlsFragment extends Fragment {
 
         mTitle.setText(metadata.getDescription().getTitle());
         mSubtitle.setText(metadata.getDescription().getSubtitle());
-        String artUrl = null;
+        FetchImageAsync.fetchImageAsync(mAlbumArt,mAlbumArt,metadata.getDescription(), FetchImageAsync.ImageSize.IconImage);
+        /*String artUrl = null;
         if (metadata.getDescription().getIconUri() != null) {
             artUrl = metadata.getDescription().getIconUri().toString();
         }
         if (!TextUtils.equals(artUrl, mArtUrl)) {
 
+            if(artUrl == null ){
+                return;
+            }
             mArtUrl = artUrl;
             Bitmap art = metadata.getDescription().getIconBitmap();
             AlbumArtCache cache = AlbumArtCache.getInstance();
@@ -196,7 +204,7 @@ public class PlaybackControlsFragment extends Fragment {
                         }
                 );
             }
-        }
+        }*/
     }
 
     public void setExtraInfo(String extraInfo) {

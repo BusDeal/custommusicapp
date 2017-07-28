@@ -31,6 +31,16 @@
             android:title="@string/drawer_favorites_title"/>
 
         <item
+            android:id="@+id/navigation_history"
+            android:icon="@drawable/ic_history_black"
+            android:title="@string/drawer_history_title"/>
+
+        <item
+            android:id="@+id/navigation_local"
+            android:icon="@drawable/ic_local_library_black"
+            android:title="@string/drawer_local_title"/>
+
+        <item
             android:id="@+id/navigation_feedback"
             android:icon="@drawable/ic_feedback_black"
             android:title="@string/drawer_feedback_title"/>

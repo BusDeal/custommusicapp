@@ -22,6 +22,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
+import android.media.MediaMetadataRetriever;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
@@ -39,6 +40,9 @@ import android.widget.TextView;
 import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.utils.BitmapHelper;
+import com.music.android.uamp.utils.Constants;
+import com.music.android.uamp.utils.FetchImageAsync;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.pnikosis.materialishprogress.ProgressWheel;
 
@@ -91,7 +95,10 @@ public class MediaItemViewHolder {
             holder.duration = (TextView) convertView.findViewById(R.id.duration);
             holder.download = (ImageView) convertView.findViewById(R.id.download);
             holder.mProgressWeel = (ProgressWheel)convertView.findViewById(R.id.progress_wheel);
-            if(description.getExtras().getString(MusicProviderSource.CUSTOM_METADATA_DOWNLOADED) != null){
+            if(description.getExtras().getString(Constants.CUSTOM_METADATA_DOWNLOADED) != null){
+                holder.download.setVisibility(View.GONE);
+            }
+            if(description.getExtras().getString(Constants.CUSTOM_METADATA_LOCAL) != null){
                 holder.download.setVisibility(View.GONE);
             }
 
@@ -108,7 +115,7 @@ public class MediaItemViewHolder {
         holder.mDescriptionView.setText(description.getSubtitle());
         imageWidth= (int)(convertView.getResources().getDimension(R.dimen.imageWidth)/convertView.getResources().getDisplayMetrics().density);
         imageHeight= (int)(convertView.getResources().getDimension(R.dimen.imageHeight)/convertView.getResources().getDisplayMetrics().density);
-        fetchImageAsync(convertView,holder,description);
+       fetchImageAsync(convertView,holder,description);
         // If the state of convertView is different, we need to adapt the view to the
         // new state.
         if (cachedState == null || cachedState != state) {
@@ -187,28 +194,64 @@ public class MediaItemViewHolder {
     }
 
     private static void fetchImageAsync(final View view, final MediaItemViewHolder holder, @NonNull final MediaDescriptionCompat description) {
-        if (description.getIconUri() == null) {
+        if (description.getIconUri() == null && description.getIconBitmap() == null ) {
             return;
         }
+        Bitmap art=null;
 
-        String artUrl = description.getIconUri().toString();
         AlbumArtCache cache = AlbumArtCache.getInstance();
-        Bitmap art = cache.getBigImage(artUrl);
+        String artUrl=null;
+        if(description.getIconUri() != null) {
+            artUrl = description.getIconUri().toString();
+            art = cache.getBigImage(artUrl);
+            File imgFile = new File(artUrl);
+            if(imgFile.exists()) {
+                try {
+                    art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                    if(art == null){
+                        MediaMetadataRetriever metaRetriver = new MediaMetadataRetriever();
+                        metaRetriver.setDataSource(artUrl);
+                        try {
+                            byte artByte[] = metaRetriver.getEmbeddedPicture();
+                            if(artByte != null) {
+                                art = BitmapFactory.decodeByteArray(artByte, 0, artByte.length);
+                                art = BitmapHelper.scaleBitmap(art,
+                                        800, 480);
+                                //art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
+                            }
+
+                        }catch(Exception e1){
+                            e1.printStackTrace();
+                        }
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        /*if(description.getExtras() != null && description.getExtras().getString(Constants.CUSTOM_METADATA_LOCAL) != null && description.getExtras().getString(Constants.CUSTOM_METADATA_TRACK_SOURCE) != null){
+                MediaMetadataRetriever metaRetriver = new MediaMetadataRetriever();
+                metaRetriver.setDataSource(description.getExtras().getString(Constants.CUSTOM_METADATA_TRACK_SOURCE));
+                try {
+                    byte artByte[] = metaRetriver.getEmbeddedPicture();
+                    if(artByte != null) {
+                        art = BitmapFactory.decodeByteArray(artByte, 0, artByte.length);
+                        art = BitmapHelper.scaleBitmap(art,
+                                800, 480);
+
+                    }
+
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+        }*/
         if (art == null) {
             art = description.getIconBitmap();
         }
-        if(artUrl.startsWith("/")){
-            File imgFile = new File(artUrl);
-
-            if(imgFile.exists()) {
-                art = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-            }
-        }
         if (art != null) {
-            //art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
-            // if we have the art cached or from the MediaDescription, use it:
             holder.alubmImageview.setImageBitmap(art);
-        } else {
+        } else if(artUrl != null) {
             // otherwise, fetch a high res version and update:
             cache.fetch(artUrl, new AlbumArtCache.FetchListener() {
                 @Override
@@ -228,6 +271,10 @@ public class MediaItemViewHolder {
                     holder.alubmImageview.setImageBitmap(bm);
                 }
             });
+        }else{
+            Bitmap bm = BitmapFactory.decodeResource(view.getResources(), R.drawable.ic_launcher);
+            //bm=Bitmap.createScaledBitmap(bm, imageWidth, imageHeight, false);
+            holder.alubmImageview.setImageBitmap(bm);
         }
     }
 

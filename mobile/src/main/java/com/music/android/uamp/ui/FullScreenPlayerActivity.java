@@ -61,6 +61,8 @@ import com.music.android.uamp.MusicService;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProvider;
 import com.music.android.uamp.model.MusicProviderSource;
+import com.music.android.uamp.utils.Constants;
+import com.music.android.uamp.utils.FetchImageAsync;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
@@ -132,7 +134,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             if (metadata != null) {
                 updateMediaDescription(metadata.getDescription());
                 updateDuration(metadata);
-                String durationStr = metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+                String durationStr = metadata.getString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS);
                 if (durationStr != null) {
                     String durs[] = durationStr.split(",");
                     for (String str : durs) {
@@ -427,7 +429,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         if (metadata != null) {
             updateMediaDescription(metadata.getDescription());
             updateDuration(metadata);
-            String durationStr = metadata.getString(MusicProviderSource.CUSTOM_METADATA_TRACKS_DURATIONS);
+            String durationStr = metadata.getString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS);
             if (durationStr != null) {
                 String durs[] = durationStr.split(",");
                 for (String str : durs) {
@@ -555,7 +557,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         LogHelper.d(TAG, "updateMediaDescription called ");
         mLine1.setText(description.getTitle());
         mLine2.setText(description.getSubtitle());
-        fetchImageAsync(description);
+        FetchImageAsync.fetchImageAsync(mBackgroundImage,mBackgroundImage,description, FetchImageAsync.ImageSize.BigImage);
     }
 
     private void updateDuration(MediaMetadataCompat metadata) {
@@ -580,13 +582,25 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     .getString(R.string.casting_to_device, castName);
             mLine3.setText(line3Text);
         }
+        mSkipNext.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) == 0
+                ? INVISIBLE : VISIBLE);
+        mSkipPrev.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) == 0
+                ? INVISIBLE : VISIBLE);
 
         switch (state.getState()) {
             case PlaybackStateCompat.STATE_PLAYING:
                 mLoading.setVisibility(INVISIBLE);
                 mPlayPause.setVisibility(VISIBLE);
                 mPlayPause.setImageDrawable(mPauseDrawable);
+                mSkipNext.setVisibility(VISIBLE);
+                mSkipPrev.setVisibility(VISIBLE);
                 mControllers.setVisibility(VISIBLE);
+                //mFastFoward.setVisibility(View.VISIBLE);
+                //mRewind.setVisibility(View.VISIBLE);
+                if (durations.size() >  2) {
+                    mFastFoward.setVisibility(View.VISIBLE);
+                    mRewind.setVisibility(View.VISIBLE);
+                }
                 scheduleSeekbarUpdate();
                 break;
             case PlaybackStateCompat.STATE_PAUSED:
@@ -606,6 +620,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             case PlaybackStateCompat.STATE_CONNECTING:
             case PlaybackStateCompat.STATE_BUFFERING:
                 mPlayPause.setVisibility(INVISIBLE);
+                mSkipNext.setVisibility(INVISIBLE);
+                mSkipPrev.setVisibility(INVISIBLE);
+                mRewind.setVisibility(INVISIBLE);
+                mFastFoward.setVisibility(INVISIBLE);
                 mLoading.setVisibility(VISIBLE);
                 mLine3.setText(R.string.loading);
                 stopSeekbarUpdate();
@@ -614,6 +632,8 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 mControllers.setVisibility(VISIBLE);
                 mLoading.setVisibility(INVISIBLE);
                 mPlayPause.setVisibility(VISIBLE);
+                mSkipNext.setVisibility(VISIBLE);
+                mSkipPrev.setVisibility(VISIBLE);
                 mPlayPause.setImageDrawable(mPlayDrawable);
                 stopSeekbarUpdate();
                 mLoading.setVisibility(INVISIBLE);
@@ -625,10 +645,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 LogHelper.d(TAG, "Unhandled state ", state.getState());
         }
 
-        mSkipNext.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) == 0
-                ? INVISIBLE : VISIBLE);
-        mSkipPrev.setVisibility((state.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) == 0
-                ? INVISIBLE : VISIBLE);
+
     }
 
     private void updateProgress() {

@@ -52,6 +52,8 @@ import com.google.android.gms.cast.framework.IntroductoryOverlay;
 import static com.music.android.uamp.ui.tv.TvBrowseActivity.SAVED_MEDIA_ID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 
 /**
@@ -132,7 +134,18 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                         intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_FAVOURITE);
                         MY_ACTIVE_ACTIVITY=3;
                         break;
-
+                    case R.id.navigation_history:
+                        activityClass = MusicPlayerActivity.class;
+                        intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_HISTORY);
+                        MY_ACTIVE_ACTIVITY=4;
+                        break;
+                    case R.id.navigation_local:
+                        activityClass = MusicPlayerActivity.class;
+                        intent=new Intent(ActionBarCastActivity.this, activityClass);
+                        intent.putExtra(SAVED_MEDIA_ID,MEDIA_ID_MUSICS_BY_LOCAL);
+                        MY_ACTIVE_ACTIVITY=5;
+                        break;
                     case R.id.navigation_feedback:
                         Intent Email = new Intent(Intent.ACTION_SEND);
                         Email.setType("text/email");
@@ -329,6 +342,12 @@ public abstract class ActionBarCastActivity extends AppCompatActivity {
                 navigationView.setCheckedItem(R.id.navigation_favorites);
                 break;
             case 4:
+                navigationView.setCheckedItem(R.id.navigation_history);
+                break;
+            case 5:
+                navigationView.setCheckedItem(R.id.navigation_local);
+                break;
+            case 6:
                 navigationView.setCheckedItem(R.id.navigation_feedback);
         }
         SharedPreferences sharedPreferences = this.getSharedPreferences("GOOGLE_ACCOUNT", MODE_PRIVATE);

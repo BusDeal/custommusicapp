@@ -28,7 +28,9 @@ import java.util.List;
 
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
@@ -93,6 +95,12 @@ public class QueueHelper {
         }
         else if (categoryType.equals(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID)) {
             tracks = musicProvider.getFavouriteMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        }
+        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
+            tracks = musicProvider.getHistoryMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        }
+        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID)) {
+            tracks = musicProvider.getLocalMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
         if (tracks == null) {
             List<MediaMetadataCompat> current = new ArrayList<>();

@@ -19,14 +19,18 @@ package com.music.android.uamp.playback;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 
 import com.music.android.uamp.AlbumArtCache;
 import com.music.android.uamp.R;
 import com.music.android.uamp.model.MusicProvider;
+import com.music.android.uamp.utils.BitmapHelper;
+import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.QueueHelper;
@@ -116,7 +120,7 @@ public class QueueManager {
     }
 
     public MediaSessionCompat.QueueItem getNextItem() {
-        if (mPlayingQueue.size() >= mCurrentIndex) {
+        if (mPlayingQueue.size() >= mCurrentIndex+1) {
             return null;
         }
         return mPlayingQueue.get(mCurrentIndex + 1);
@@ -240,7 +244,22 @@ public class QueueManager {
                 File imgFile = new File(albumUri);
                 if (imgFile.exists()) {
                     bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                    icon = Bitmap.createScaledBitmap(bitmap, 128, 128, false);
+                    if(bitmap == null){
+                        MediaMetadataRetriever metaRetriver = new MediaMetadataRetriever();
+                        metaRetriver.setDataSource(albumUri);
+                        try {
+                            byte artByte[] = metaRetriver.getEmbeddedPicture();
+                            if(artByte != null) {
+                                bitmap = BitmapFactory.decodeByteArray(artByte, 0, artByte.length);
+                            }
+
+                        }catch(Exception e1){
+                            e1.printStackTrace();
+                        }
+                    }
+                    if(bitmap != null) {
+                        icon = Bitmap.createScaledBitmap(bitmap, 128, 128, false);
+                    }
                 }
             }
             if (bitmap != null) {
