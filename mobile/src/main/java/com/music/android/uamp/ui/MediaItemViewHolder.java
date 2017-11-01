@@ -215,8 +215,8 @@ public class MediaItemViewHolder {
                             byte artByte[] = metaRetriver.getEmbeddedPicture();
                             if(artByte != null) {
                                 art = BitmapFactory.decodeByteArray(artByte, 0, artByte.length);
-                                art = BitmapHelper.scaleBitmap(art,
-                                        800, 480);
+                               /* art = BitmapHelper.scaleBitmap(art,
+                                        800, 480);*/
                                 //art=Bitmap.createScaledBitmap(art, imageWidth, imageHeight, false);
                             }
 

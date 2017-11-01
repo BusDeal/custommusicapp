@@ -36,7 +36,7 @@ import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by sagar on 21/7/17.
- * //https://www.xvideos.com/profiles/sanjaykavya
+ *
  */
 
 public class LocalMediaManager {

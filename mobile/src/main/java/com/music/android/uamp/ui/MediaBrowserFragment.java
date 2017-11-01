@@ -252,7 +252,6 @@ public class MediaBrowserFragment extends Fragment {
                             if (deleted && artUrl != null && artUrl.startsWith("/") && file.exists()) {
                                 deleted = file.delete();
                             }
-                            //DownloadManager.removeMedia();
                         }
                         mBrowserAdapter.remove(mediaItem);
                         // delete

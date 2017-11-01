@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -18,6 +19,8 @@ import com.music.android.uamp.model.MutableMediaMetadata;
 import com.music.android.uamp.utils.Constants;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -55,7 +58,7 @@ public class DownLoadManager {
     public Boolean downLoad(final String musicId, final BroadcastReceiver broadcastReceiver) {
 
 
-        Map<String, MutableMediaMetadata> downloadedMedia = getDownloadedMedia(context);
+        Map<String, MutableMediaMetadata> downloadedMedia = getDownloadedMedia(context,musicProvider);
         if (downloadedMedia.containsKey(musicId)) {
             return false;
         }
@@ -102,26 +105,63 @@ public class DownLoadManager {
         return true;
     }
 
-    public static void removeMedia(Context context,final String musicId){
-        DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-        Cursor cursor = manager.query(new DownloadManager.Query());
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            String title = cursor.getString(4);
-            String data[] = title.split("::");
-            if (data.length < 2) {
-                cursor.moveToNext();
-                continue;
+
+    public static Boolean downLoadImage(final String musicId,final Context context,final MusicProvider musicProvider) {
+
+        new AsyncTask<String, Void, AudioMetaData>() {
+            @Override
+            protected AudioMetaData doInBackground(String... params) {
+                return musicProvider.getSourceUrl(musicId);
+
             }
-            String id=cursor.getString(0);
-            String tmpMusicId = data[1];
-            if(tmpMusicId != null && tmpMusicId.equalsIgnoreCase(musicId)){
-                //manager.remove(cursor.getI);
+
+            @Override
+            protected void onPostExecute(AudioMetaData source) {
+                if (source == null) {
+                    return;
+                }
+                MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(musicId);
+                DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+                DownloadManager.Request request = new DownloadManager.Request(mediaMetadataCompat.getDescription().getIconUri());
+                request.setDescription(mediaMetadataCompat.getDescription().getDescription());
+                request.setTitle(mediaMetadataCompat.getDescription().getTitle() + "::" + musicId);
+                request.setMimeType("img");
+                request.setVisibleInDownloadsUi(false);
+                request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, mediaMetadataCompat.getDescription().getMediaId() + "/images/" + mediaMetadataCompat.getDescription().getTitle() + ".jpg");
+                manager.enqueue(request);
+
             }
+        }.executeOnExecutor(THREAD_POOL_EXECUTOR);
+
+        return true;
+    }
+
+
+    private static String getImageFromSourceFile(String src,String musicId,Context context,MusicProvider musicProvider){
+        File file=new File(src);
+        if(file.exists()){
+            String fileName=file.getName();
+            int i = fileName.lastIndexOf('.');
+            if (i > 0) {
+                fileName=fileName.substring(0,i);
+                fileName=fileName+".jpg";
+                String filePath=file.getPath();
+                filePath=filePath.substring(0,filePath.lastIndexOf("/"));
+                filePath+="/images/";
+                String fullFile=filePath+ fileName;
+                file=new File(fullFile);
+                if(!file.exists()){
+                    return "https://img.youtube.com/vi/"+musicId+"/hqdefault.jpg";
+                }
+                return fullFile;
+            }
+            return "https://img.youtube.com/vi/"+musicId+"/hqdefault.jpg";
+        }else{
+            return "https://img.youtube.com/vi/"+musicId+"/hqdefault.jpg";
         }
     }
 
-    public static Map<String, MutableMediaMetadata> getDownloadedMedia(Context context) {
+    public static Map<String, MutableMediaMetadata> getDownloadedMedia(Context context,MusicProvider provider) {
 
         Map<String, MutableMediaMetadata> mMusicListById = new LinkedHashMap<>();
         try {
@@ -212,6 +252,7 @@ public class DownLoadManager {
                 if (mediaMetadata != null) {
                     MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
                             .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, getImageFromSourceFile(src,musicId,context,provider))
                             .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
                             .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
                             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
@@ -226,6 +267,7 @@ public class DownLoadManager {
                 } else {
                     MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder()
                             .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, musicId)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, getImageFromSourceFile(src,musicId,context,provider))
                             .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, desc)
                             .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
                             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)

@@ -674,7 +674,6 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         if (item != null) {
             intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
                     item.getDescription());
-            String musicId = MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId());
             intent.putExtra("mediaId", item.getDescription().getMediaId());
         }
 

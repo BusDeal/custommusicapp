@@ -96,9 +96,9 @@ public class QueueHelper {
         else if (categoryType.equals(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID)) {
             tracks = musicProvider.getFavouriteMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
-        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
+        /*else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
             tracks = musicProvider.getHistoryMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        }
+        }*/
         else if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID)) {
             tracks = musicProvider.getLocalMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }

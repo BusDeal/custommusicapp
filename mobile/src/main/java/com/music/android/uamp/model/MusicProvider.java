@@ -113,7 +113,7 @@ public class MusicProvider {
         mSource = source;
         mMusicListByGenre = new ConcurrentHashMap<>();
         mMusicListById = new LinkedHashMap<>();
-        downloadMusicList = DownLoadManager.getDownloadedMedia(context);
+        downloadMusicList = DownLoadManager.getDownloadedMedia(context,this);
         mFavoriteTracks = FavouriteManager.loadFavourites(context);
         mHistoryTracks = HistoryManager.loadHistories(context);
         mLocalTracks= new LinkedHashMap<>();
@@ -161,7 +161,7 @@ public class MusicProvider {
     }
 
     private Iterable<MediaMetadataCompat> getDownloadedMusic() {
-        downloadMusicList = DownLoadManager.getDownloadedMedia(context);
+        downloadMusicList = DownLoadManager.getDownloadedMedia(context,this);
         List<MediaMetadataCompat> shuffled = new ArrayList<>(downloadMusicList.size());
         for (MutableMediaMetadata mutableMetadata : downloadMusicList.values()) {
             shuffled.add(mutableMetadata.metadata);

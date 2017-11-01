@@ -24,12 +24,18 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 
+import com.google.android.gms.analytics.GoogleAnalytics;
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
+import com.google.firebase.analytics.FirebaseAnalytics;
+import com.music.android.uamp.AnalyticsApplication;
 import com.music.android.uamp.MusicService;
 import com.music.android.uamp.model.AudioMetaData;
 import com.music.android.uamp.model.MusicProvider;
@@ -68,6 +74,8 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
 
     private final Context mContext;
     private final WifiManager.WifiLock mWifiLock;
+    private final FirebaseAnalytics mFirebaseAnalytics;
+    private final Tracker mTracker;
     private int mState;
     private boolean mPlayOnFocusGain;
     private Callback mCallback;
@@ -80,6 +88,7 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
     private int mAudioFocus = AUDIO_NO_FOCUS_NO_DUCK;
     private final AudioManager mAudioManager;
     private MediaPlayer mMediaPlayer;
+
 
     private final IntentFilter mAudioNoisyIntentFilter =
             new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
@@ -108,6 +117,16 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
         this.mWifiLock = ((WifiManager) context.getSystemService(Context.WIFI_SERVICE))
                 .createWifiLock(WifiManager.WIFI_MODE_FULL, "uAmp_lock");
         this.mState = PlaybackStateCompat.STATE_NONE;
+
+
+        GoogleAnalytics analytics = GoogleAnalytics.getInstance(context);
+        analytics.setLocalDispatchPeriod(10*60);
+        mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
+        mTracker.enableExceptionReporting(true);
+        //mTracker.enableAdvertisingIdCollection(true);
+        mTracker.enableAutoActivityTracking(true);
+
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
     }
 
     @Override
@@ -277,6 +296,20 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             } else {
                 initlizeMediplayer(source);
             }
+            mTracker.setScreenName("LocalPlayback");
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId))
+                    .setAction("song")
+                    .setLabel(musicID)
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId),mediaId)
+                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, mediaId );
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "song");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(mediaId));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, "LocalPlayback");
+            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
             mMusicProvider.setHistoryTrack(musicID,track);
         }
     }
