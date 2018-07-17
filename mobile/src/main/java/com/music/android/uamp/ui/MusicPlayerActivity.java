@@ -15,6 +15,7 @@
  */
 package com.music.android.uamp.ui;
 
+import android.animation.TypeEvaluator;
 import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
@@ -70,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ADD_TO_QUEUE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
@@ -171,9 +173,9 @@ public class MusicPlayerActivity extends BaseActivity
     }
 
     @Override
-    public void onMediaItemSelected(MediaBrowserCompat.MediaItem item) {
+    public void onMediaItemSelected(MediaBrowserCompat.MediaItem item,Type type) {
         LogHelper.d(TAG, "onMediaItemSelected, mediaId=" + item.getMediaId());
-        if (item != null && item.isPlayable()) {
+        if (item != null && item.isPlayable() && type == Type.PLAY) {
             Intent intent = new Intent(MusicPlayerActivity.this, FullScreenPlayerActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
@@ -197,7 +199,7 @@ public class MusicPlayerActivity extends BaseActivity
             getSupportMediaController().getTransportControls()
                     .prepareFromMediaId(item.getMediaId(), null);
             startActivity(intent);
-        } else if (item.isBrowsable()) {
+        } else if (item.isBrowsable() | type == Type.BROWSE) {
             mTracker.send(new HitBuilders.EventBuilder()
                     .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
                     .setAction("browse")
@@ -212,7 +214,41 @@ public class MusicPlayerActivity extends BaseActivity
             bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
             mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM_LIST, bundle);
             navigateToBrowser(item.getMediaId());
-        } else {
+        }else if(type == Type.ADDTOQUEUE){
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("browse")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "queue");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
+            String addToQueue = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(item.getMediaId()), MEDIA_ID_ADD_TO_QUEUE, "add");
+            getMediaBrowser().getItem(addToQueue, new MediaBrowserCompat.ItemCallback() {
+                /**
+                 * Called when the item has been returned by the browser service.
+                 *
+                 * @param item The item that was returned or null if it doesn't exist.
+                 */
+                @Override
+                public void onItemLoaded(MediaBrowserCompat.MediaItem item){
+                }
+
+                /**
+                 * Called when the item doesn't exist or there was an error retrieving it.
+                 *
+                 * @param itemId The media id of the media item which could not be loaded.
+                 */
+                @Override
+                public void onError(@NonNull String message) {
+                }
+            });
+        }
+        else {
             LogHelper.w(TAG, "Ignoring MediaItem that is neither browsable nor playable: ",
                     "mediaId=", item.getMediaId());
         }

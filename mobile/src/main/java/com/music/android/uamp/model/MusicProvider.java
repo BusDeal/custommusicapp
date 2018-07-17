@@ -255,6 +255,10 @@ public class MusicProvider {
     }
 
     public Iterable<MediaMetadataCompat> getHistoryMusicTracks(String videoId) {
+        Iterable<MediaMetadataCompat> tracks = getYoutubeIdBasedMusic(videoId);
+        if (tracks != null && getIteratorSize(tracks) > 0) {
+            return tracks;
+        }
         List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(mHistoryTracks.size());
         for (MediaMetadataCompat mediaMetadataCompat : mHistoryTracks.values()) {
             if (mediaMetadataCompat.getDescription().getMediaId().equalsIgnoreCase(videoId)) {
@@ -711,7 +715,12 @@ public class MusicProvider {
         if(items == null){
             return;
         }
+        LinkedHashMap<String, MutableMediaMetadata> newmap=new LinkedHashMap<>();
+        newmap.putAll(items);
+        items.clear();
         items.put(musicId, mutableMediaMetadata);
+        items.putAll(newmap);
+        newmap.clear();
     }
 
     private MediaBrowserCompat.MediaItem createBrowsableMediaItemForRoot(Resources resources) {

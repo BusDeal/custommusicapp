@@ -318,8 +318,13 @@ public class CrawlYouTube {
         String regex = "\\.set\\s*\\(\"signature\"\\s*,\\s*([a-zA-Z0-9_$][\\w$]*)\\(";
         String regex1 = "\\.sig\\s*\\|\\|\\s*([a-zA-Z0-9_$][\\w$]*)\\(/";
         String regex2 = "\\.signature\\s*=\\s*([a-zA-Z_$][\\w$]*)\\([a-zA-Z_$][\\w$]*\\)/";
+        String regex3 = "\\.set\\s*\\(\\s*\\||\"signature\"\\s*,\\s*([a-zA-Z0-9_$][\\w$]*)\\(";
         String signatureFunctionName =
-                findMatch(sourceCode, regex);
+                findMatch(sourceCode, regex3);
+        if (signatureFunctionName == null) {
+            signatureFunctionName =
+                    findMatch(sourceCode, regex);
+        }
         if (signatureFunctionName == null) {
             signatureFunctionName =
                     findMatch(sourceCode, regex1);

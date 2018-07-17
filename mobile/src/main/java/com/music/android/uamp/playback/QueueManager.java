@@ -159,6 +159,13 @@ public class QueueManager {
         updateMetadata();
     }
 
+    public void updateQueueItem() {
+        MediaSessionCompat.QueueItem queueItem=mPlayingQueue.get(0);
+        String mediaId=queueItem.getDescription().getMediaId();
+        mPlayingQueue.clear();
+        mPlayingQueue.add(queueItem);
+        mPlayingQueue.addAll(1,QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
+    }
     public void updateQueue(String mediaId) {
         mPlayingQueue.addAll(QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
     }
@@ -281,6 +288,13 @@ public class QueueManager {
         // Bitmap icon=Bitmap.createScaledBitmap(bitmap, 800, 480, false);
         mMusicProvider.updateMusicArt(musicId, bitmap, icon);
         //MediaSessionCompat.QueueItem currentMusic = getCurrentMusic();
+    }
+
+    public String getTopElemnetOfQueue() {
+        if(mPlayingQueue.isEmpty()){
+            return null;
+        }
+        return mPlayingQueue.get(0).getDescription().getMediaId();
     }
 
     public interface MetadataUpdateListener {

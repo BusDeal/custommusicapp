@@ -420,6 +420,8 @@ public class RemoteJSONSource implements MusicProviderSource {
         try {
             URLConnection urlConnection = new URL(urlString).openConnection();
             HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
+            httpURLConnection.setConnectTimeout(10 * 10000);
+            httpURLConnection.setReadTimeout(10 * 10000);
             int status = httpURLConnection.getResponseCode();
             InputStream in;
             if (status >= 400) {

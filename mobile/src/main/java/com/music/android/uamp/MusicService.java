@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 
 import static android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ADD_TO_QUEUE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE;
@@ -542,10 +543,24 @@ public class MusicService extends MediaBrowserServiceCompat implements
                 Boolean isFavourite = Boolean.parseBoolean(tmp);
                 mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), isFavourite);
                 result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
+            }
+            return;
+        }
+        if((categoryType != null && MEDIA_ID_ADD_TO_QUEUE.equalsIgnoreCase(categoryType))){
+            String currentMusicId=mPlaybackManager.getTopItemOfQueue();
+            if(currentMusicId == null){
+                result.detach();
                 return;
             }
+            mMusicProvider.addMusicVideosIdList(MediaIDHelper.extractMusicIDFromMediaID(currentMusicId),musicId);
+            mPlaybackManager.updatePlayBackQueue();
         }
         result.detach();
+    }
+
+    private boolean addItemToExistingPlayList(String mediaId){
+
+        return true;
     }
 
     /**

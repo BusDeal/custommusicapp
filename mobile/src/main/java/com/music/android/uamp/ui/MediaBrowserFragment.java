@@ -35,15 +35,18 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.baoyz.swipemenulistview.SwipeMenu;
 import com.baoyz.swipemenulistview.SwipeMenuCreator;
 import com.baoyz.swipemenulistview.SwipeMenuItem;
@@ -59,6 +62,9 @@ import com.music.android.uamp.utils.Constants;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
+import com.orhanobut.dialogplus.DialogPlus;
+import com.orhanobut.dialogplus.GridHolder;
+import com.orhanobut.dialogplus.OnItemClickListener;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -216,10 +222,33 @@ public class MediaBrowserFragment extends Fragment {
         listView.setAdapter(mBrowserAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public void onItemClick(final AdapterView<?> parent, View view, int position, long id) {
                 checkForUserVisibleErrors(false);
-                MediaBrowserCompat.MediaItem item = mBrowserAdapter.getItem(position);
-                mMediaFragmentListener.onMediaItemSelected(item);
+                final MediaBrowserCompat.MediaItem item = mBrowserAdapter.getItem(position);
+                List<String> list=new ArrayList<String>();
+                list.add("Play");
+                list.add("addToQueue");
+                list.add("Browse");
+                DialogPlus dialog = DialogPlus.newDialog(getActivity())
+                        .setAdapter(new ChoiceAdapter(getActivity(),list))
+                        .setOnItemClickListener(new OnItemClickListener() {
+                            @Override
+                            public void onItemClick(DialogPlus dialog, Object object, View view, int position) {
+                                if(position == 0) {
+                                    mMediaFragmentListener.onMediaItemSelected(item, MediaFragmentListener.Type.PLAY);
+                                }else if (position == 1) {
+                                    mMediaFragmentListener.onMediaItemSelected(item, MediaFragmentListener.Type.ADDTOQUEUE);
+                                }else {
+                                    mMediaFragmentListener.onMediaItemSelected(item, MediaFragmentListener.Type.BROWSE);
+                                }
+                                dialog.dismiss();
+                            }
+                        })
+                        .setContentHolder(new GridHolder(3))
+                        .setGravity(Gravity.CENTER)
+                        .setCancelable(true)
+                        .create();
+                dialog.show();
             }
         });
 
@@ -546,6 +575,35 @@ public class MediaBrowserFragment extends Fragment {
         });
     }
 
+    private class ChoiceAdapter extends ArrayAdapter<String>{
+
+        public ChoiceAdapter(Activity context, List items) {
+            super(context, R.layout.choicelayout, items);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent){
+
+            if(convertView == null){
+                convertView = LayoutInflater.from(MediaBrowserFragment.this.getActivity())
+                        .inflate(R.layout.choicelayout, parent, false);
+                ImageView imagesView=(ImageView)convertView.findViewById(R.id.choiceImage);
+                TextView textView=(TextView)convertView.findViewById(R.id.choiceText);
+                if(position == 0){
+                    imagesView.setImageResource(R.drawable.ic_play_arrow_black_36dp);
+                    textView.setText("Play");
+                } else if(position == 1){
+                    imagesView.setImageResource(R.drawable.ic_add_to_queue_36pt);
+                    textView.setText("Add To Queue");
+                }else if(position == 2){
+                    imagesView.setImageResource(R.drawable.ic_view_headline_black_36dp);
+                    textView.setText("Browse");
+                }
+
+            }
+            return convertView;
+        }
+    }
     // An adapter for showing the list of browsed MediaItem's
     private class BrowseAdapter extends ArrayAdapter<MediaBrowserCompat.MediaItem> {
 
@@ -608,7 +666,10 @@ public class MediaBrowserFragment extends Fragment {
 
 
     public interface MediaFragmentListener extends MediaBrowserProvider {
-        void onMediaItemSelected(MediaBrowserCompat.MediaItem item);
+        enum Type{
+            BROWSE, PLAY, ADDTOQUEUE
+        }
+        void onMediaItemSelected(MediaBrowserCompat.MediaItem item, Type type);
 
         void setToolbarTitle(CharSequence title);
     }

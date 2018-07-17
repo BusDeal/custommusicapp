@@ -78,8 +78,11 @@ import java.util.concurrent.TimeUnit;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
+import static com.music.android.uamp.R.id.message;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ADD_TO_QUEUE;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 
 /**
@@ -202,7 +205,6 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         initializeToolbar();
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("");
         }
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -666,35 +668,95 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     }
 
     @Override
-    public void onMediaItemSelected(MediaBrowserCompat.MediaItem item) {
+    public void onMediaItemSelected(MediaBrowserCompat.MediaItem item, Type type) {
 
-        Intent intent = getIntent();
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if(type == Type.PLAY) {
+            Intent intent = getIntent();
+            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-        if (item != null) {
-            intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
-                    item.getDescription());
-            intent.putExtra("mediaId", item.getDescription().getMediaId());
+            if (item != null) {
+                intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                        item.getDescription());
+                intent.putExtra("mediaId", item.getDescription().getMediaId());
+            }
+
+            mTracker.setScreenName("FullScreenPlayerActivity");
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("play")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "play");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, "FullScreenPlayerActivity");
+            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+            getSupportMediaController().getTransportControls()
+                    .prepareFromMediaId(item.getMediaId(), null);
+            finish();
+            startActivity(intent);
+        }else if (item.isBrowsable() | type == Type.BROWSE) {
+                mTracker.send(new HitBuilders.EventBuilder()
+                        .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                        .setAction("browse")
+                        .setLabel(item.getMediaId())
+                        .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                        .build());
+                Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "browse");
+                bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+                bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
+                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM_LIST, bundle);
+                navigateToBrowser(item.getMediaId());
+                Intent intent = new Intent(FullScreenPlayerActivity.this,MusicPlayerActivity.class);
+                intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                        item.getDescription());
+                intent.putExtra("mediaId", item.getDescription().getMediaId());
+                intent.putExtra("com.music.android.uamp.MEDIA_ID", item.getDescription().getMediaId());
+
+            finish();
+            startActivity(intent);
+        } else if(type == Type.ADDTOQUEUE) {
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("browse")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "queue");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
+            String addToQueue = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(item.getMediaId()), MEDIA_ID_ADD_TO_QUEUE, "add");
+            getMediaBrowser().getItem(addToQueue, new MediaBrowserCompat.ItemCallback() {
+                /**
+                 * Called when the item has been returned by the browser service.
+                 *
+                 * @param item The item that was returned or null if it doesn't exist.
+                 */
+                @Override
+                public void onItemLoaded(MediaBrowserCompat.MediaItem item){
+                }
+
+                /**
+                 * Called when the item doesn't exist or there was an error retrieving it.
+                 *
+                 * @param itemId The media id of the media item which could not be loaded.
+                 */
+                @Override
+                public void onError(@NonNull String message) {
+                }
+            });
+
         }
 
-        mTracker.setScreenName("FullScreenPlayerActivity");
-        mTracker.send(new HitBuilders.EventBuilder()
-                .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
-                .setAction("play")
-                .setLabel(item.getMediaId())
-                .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
-                .build());
-        Bundle bundle = new Bundle();
-        bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
-        bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
-        bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "play");
-        bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
-        bundle.putString(FirebaseAnalytics.Param.CONTENT, "FullScreenPlayerActivity");
-        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
-        getSupportMediaController().getTransportControls()
-                .prepareFromMediaId(item.getMediaId(), null);
-        finish();
-        startActivity(intent);
 
     }
 

@@ -66,7 +66,7 @@ public class QueueHelper {
         }
         current.add(mediaMetadataCompat);
 
-        return convertToQueue(current, hierarchy[0]);
+        return convertToQueue(current, hierarchy[0],hierarchy[1]);
     }
 
     public static List<MediaSessionCompat.QueueItem> getAdditionalPlayingTracks(String mediaId,
@@ -96,9 +96,9 @@ public class QueueHelper {
         else if (categoryType.equals(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID)) {
             tracks = musicProvider.getFavouriteMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
-        /*else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
+        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
             tracks = musicProvider.getHistoryMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        }*/
+        }
         else if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID)) {
             tracks = musicProvider.getLocalMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
@@ -109,7 +109,7 @@ public class QueueHelper {
             tracks = current;
         }
 
-        return convertToQueue(tracks, hierarchy[0]);
+        return convertToQueue(tracks, hierarchy[0],hierarchy[1]);
 
     }
 
@@ -185,10 +185,20 @@ public class QueueHelper {
         int count = 0;
         for (MediaMetadataCompat track : tracks) {
 
+            String genre=track.getDescription().getTitle().toString();
+            if (genre == null) {
+                genre = "null";
+            }
+            if (genre.indexOf("/") > 0) {
+                genre = genre.replace("/", "");
+            }
+            if (genre.indexOf("|") > 0) {
+                genre = genre.replace("|", "");
+            }
             // We create a hierarchy-aware mediaID, so we know what the queue is about by looking
             // at the QueueItem media IDs.
             String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
-                    track.getDescription().getMediaId(), categories);
+                    track.getDescription().getMediaId(),MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID,genre);
 
             MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(track)
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)

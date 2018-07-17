@@ -133,6 +133,6 @@
         android:tint="@color/media_item_icon_not_playing"
         android:contentDescription="@string/play_item"
         android:gravity="end"
-        android:src="@drawable/ic_play_arrow_black_36dp"/>
+        android:src="@drawable/ic_play_arrow_black_new_36dp"/>
 
 </LinearLayout>

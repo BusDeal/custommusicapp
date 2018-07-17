@@ -397,6 +397,14 @@ public class PlaybackManager implements Playback.Callback {
         mQueueManager.updateQueue(mediaId);
     }
 
+    public void updatePlayBackQueue() {
+        mQueueManager.updateQueueItem();
+    }
+
+    public String getTopItemOfQueue() {
+        return mQueueManager.getTopElemnetOfQueue();
+    }
+
 
     private class MediaSessionCallback extends MediaSessionCompat.Callback {
         @Override
