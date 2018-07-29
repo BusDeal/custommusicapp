@@ -1,0 +1,51 @@
+{
+  "project_info": {
+    "project_number": "78871171769",
+    "project_id": "firebase-jukebox"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78871171769:android:05a5b5620659f789",
+        "android_client_info": {
+          "package_name": "com.music.android.uamp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "78871171769-i14cktdp7o96jca8i4gcanp4ten33h5b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.music.android.uamp",
+            "certificate_hash": "E4DEE48513F8015752915147491C4542F9F0D1E0"
+          }
+        },
+        {
+          "client_id": "78871171769-70hbgrb37vgcjei4vm2bu0o8a193c13q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ2xVjt60u--8MMgaDE2WjEsuvz220IKQ"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 2,
+          "analytics_property": {
+            "tracking_id": "UA-88784216-1"
+          }
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

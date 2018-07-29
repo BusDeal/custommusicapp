@@ -190,8 +190,9 @@ public class DownLoadManager {
                     continue;
                 }
 
-                String src = cursor.getString(1);
-                File file = new File(src);
+
+                String src = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
+                File file = new File(Uri.parse(src).getPath());
                 if (!file.exists()) {
                     cursor.moveToNext();
                     continue;

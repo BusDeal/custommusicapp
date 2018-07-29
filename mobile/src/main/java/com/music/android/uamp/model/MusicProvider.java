@@ -79,6 +79,7 @@ public class MusicProvider {
     private Map<String, MediaMetadataCompat> mFavoriteTracks;
     private Map<String, MediaMetadataCompat> mHistoryTracks;
     private Map<String, MediaMetadataCompat> mLocalTracks;
+    private  List<>
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListBySearch;
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListByVideoId;
     private LruCache<String, Map<String, MutableMediaMetadata>> mMusicListBySearch = new LruCache<>(10);
