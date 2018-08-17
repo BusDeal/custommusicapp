@@ -120,7 +120,7 @@ public class QueueManager {
     }
 
     public MediaSessionCompat.QueueItem getNextItem() {
-        if (mPlayingQueue.size() >= mCurrentIndex+1) {
+        if (mPlayingQueue.size() <= mCurrentIndex+1) {
             return null;
         }
         return mPlayingQueue.get(mCurrentIndex + 1);
@@ -162,16 +162,15 @@ public class QueueManager {
     public void updateQueueItem() {
         MediaSessionCompat.QueueItem queueItem=mPlayingQueue.get(0);
         String mediaId=queueItem.getDescription().getMediaId();
-        mPlayingQueue.clear();
-        mPlayingQueue.add(queueItem);
-        mPlayingQueue.addAll(1,QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
+        List<MediaSessionCompat.QueueItem> queueItemList=QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider);
+        if(queueItemList != null && !queueItemList.isEmpty()) {
+            mPlayingQueue.clear();
+            mPlayingQueue.addAll(queueItemList);
+        }else {
+            LogHelper.e(TAG,"Need to check");
+        }
     }
-    public void updateQueue(String mediaId) {
-        mPlayingQueue.addAll(QueueHelper.getAdditionalPlayingTracks(mediaId, mMusicProvider));
-    }
-    public void updateQueueItem(String mediaId) {
-        mPlayingQueue.addAll(1,QueueHelper.getPlayingQueue(mediaId, mMusicProvider));
-    }
+
 
     public MediaSessionCompat.QueueItem getCurrentMusic() {
         if (!QueueHelper.isIndexPlayable(mCurrentIndex, mPlayingQueue)) {

@@ -1,6 +1,6 @@
 [
     {
-        "outputFile": "/home/sagar/Documents/android-music-app/library/build/intermediates/incremental/mergeReleaseResources/merged.dir/values/values.xml",
+        "outputFile": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/build/intermediates/incremental/mergeReleaseResources/merged.dir/values/values.xml",
         "map": [
             {
                 "to": {
@@ -11,7 +11,7 @@
                     "endOffset": 123
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 9,
                         "startColumn": 4,
@@ -30,7 +30,7 @@
                     "endOffset": 198
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 8,
                         "startColumn": 4,
@@ -49,7 +49,7 @@
                     "endOffset": 271
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 15,
                         "startColumn": 4,
@@ -68,7 +68,7 @@
                     "endOffset": 348
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 3,
                         "startColumn": 4,
@@ -87,7 +87,7 @@
                     "endOffset": 435
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 13,
                         "startColumn": 4,
@@ -106,7 +106,7 @@
                     "endOffset": 506
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 6,
                         "startColumn": 4,
@@ -125,7 +125,7 @@
                     "endOffset": 600
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 5,
                         "startColumn": 4,
@@ -144,7 +144,7 @@
                     "endOffset": 678
                 },
                 "from": {
-                    "file": "/home/sagar/Documents/android-music-app/library/src/main/res/values/strings.xml",
+                    "file": "/Users/vidyasagar.kota/StudioProjects/android-music-app/library/src/main/res/values/strings.xml",
                     "position": {
                         "startLine": 11,
                         "startColumn": 4,

@@ -211,13 +211,15 @@ public class DownLoadManager {
                 if (mimeType.equalsIgnoreCase("img")) {
 
                     if (mediaMetadata != null) {
+                        String url = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
                         MediaMetadataCompat compat = new MediaMetadataCompat.Builder(mediaMetadata.metadata)
-                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, Uri.parse(url).getPath())
                                 .build();
                         mediaMetadata.metadata = compat;
                     } else {
+                        String url = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
                         MediaMetadataCompat compat = new MediaMetadataCompat.Builder()
-                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, cursor.getString(1))
+                                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, Uri.parse(url).getPath())
                                 .build();
                         MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(musicId, compat);
                         mMusicListById.put(musicId, mutableMediaMetadata);

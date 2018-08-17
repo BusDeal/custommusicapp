@@ -177,7 +177,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                     e.printStackTrace();
                 }
                 apiUrl = CATALOG_URL + ("&q=" + query);
-            } else if (retrieveType.VIDEOID == retrieveType) {
+            } else if (retrieveType.VIDEOID == retrieveType || retrieveType.PLAY == retrieveType) {
                 StringBuilder sb = new StringBuilder();
                 for (String param : params) {
                     sb.append(param);
@@ -448,7 +448,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                 try {
                     reader.close();
                 } catch (IOException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
             }
         }
@@ -476,7 +476,7 @@ public class RemoteJSONSource implements MusicProviderSource {
                 try {
                     reader.close();
                 } catch (IOException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
             }
         }

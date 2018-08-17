@@ -1,18 +1,18 @@
 /*
-* Copyright (C) 2014 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (C) 2014 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.music.android.uamp;
 
@@ -76,6 +76,7 @@ import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HIST
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID;
+import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_PLAY;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_SEARCH;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_ROOT;
@@ -194,7 +195,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         mPackageValidator = new PackageValidator(this);
 
         GoogleAnalytics analytics = GoogleAnalytics.getInstance(getApplicationContext());
-        analytics.setLocalDispatchPeriod(10*60);
+        analytics.setLocalDispatchPeriod(10 * 60);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
         mTracker.enableExceptionReporting(true);
         mTracker = analytics.newTracker("UA-88784216-1"); // Replace with actual tracker id
@@ -384,14 +385,12 @@ public class MusicService extends MediaBrowserServiceCompat implements
                 final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
                 List<MediaItem> list = mMusicProvider.getVideosIDList(musicId);
                 if (list != null) {
-                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
                     result.sendResult(list);
                 } else {
                     result.detach();
                     mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
                         @Override
                         public void onMusicCatalogReady(boolean success) {
-                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
                             List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
                             if (items == null || items.isEmpty()) {
                                 items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
@@ -399,6 +398,32 @@ public class MusicService extends MediaBrowserServiceCompat implements
                             result.sendResult(items);
                         }
                     });
+                }
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_PLAY.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(parentMediaId)) {
+                String id = null;
+                if (mPlaybackManager.getTopItemOfQueue() != null) {
+                    id = MediaIDHelper.extractMusicIDFromMediaID(mPlaybackManager.getTopItemOfQueue());
+                } else {
+                    id = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
+                }
+                final String musicId = id;
+                List<MediaItem> items = mMusicProvider.getCurrentPlayList((musicId));
+                if (items == null || items.isEmpty()) {
+                    result.detach();
+                    mMusicProvider.retrieveMediaAsync(RetrieveType.PLAY, musicId, new MusicProvider.Callback() {
+                        @Override
+                        public void onMusicCatalogReady(boolean success) {
+                            List<MediaItem> items = mMusicProvider.getCurrentPlayList((musicId));
+                            if (items == null || items.isEmpty()) {
+                                items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
+                            }
+                            result.sendResult(items);
+                            mPlaybackManager.updatePlayBackQueue();
+                        }
+                    });
+                } else {
+                    result.sendResult(items);
+                    mPlaybackManager.updatePlayBackQueue();
                 }
             } else if (categoryType != null && (MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID.equalsIgnoreCase(categoryType))) {
                 final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
@@ -408,7 +433,6 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
                         @Override
                         public void onMusicCatalogReady(boolean success) {
-                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
                             List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
                             if (items == null || items.isEmpty()) {
                                 items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
@@ -417,28 +441,27 @@ public class MusicService extends MediaBrowserServiceCompat implements
                         }
                     });
                 } else {
-                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
                     result.sendResult(list);
                 }
-            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID.equalsIgnoreCase(categoryType)) {
                 final String musicId = MediaIDHelper.extractMusicIDFromMediaID(parentMediaId);
-                MediaMetadataCompat mediaMetadataCompat=mMusicProvider.getMusic(musicId);
-                if(mediaMetadataCompat.getString(Constants.CUSTOM_METADATA_LOCAL) != null){
-                    String searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ALBUM);
-                    if(searchQuery == null || searchQuery.isEmpty()){
-                        searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ARTIST);
+                MediaMetadataCompat mediaMetadataCompat = mMusicProvider.getMusic(musicId);
+                if (mediaMetadataCompat.getString(Constants.CUSTOM_METADATA_LOCAL) != null) {
+                    String searchQuery = mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ALBUM);
+                    if (searchQuery == null || searchQuery.isEmpty()) {
+                        searchQuery = mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ARTIST);
                     }
-                    if(searchQuery == null || searchQuery.isEmpty()){
-                        searchQuery=mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_TITLE);
-                        String  extensions[]={".mp3",".3gp",".flac",".ota",".ogg"};
-                        for(String staticExtension:extensions){
-                            if(searchQuery.contains(staticExtension)){
-                                searchQuery=searchQuery.replace(staticExtension,"");
+                    if (searchQuery == null || searchQuery.isEmpty()) {
+                        searchQuery = mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_TITLE);
+                        String extensions[] = {".mp3", ".3gp", ".flac", ".ota", ".ogg"};
+                        for (String staticExtension : extensions) {
+                            if (searchQuery.contains(staticExtension)) {
+                                searchQuery = searchQuery.replace(staticExtension, "");
                                 break;
                             }
                         }
                     }
-                    searchQuery = searchQuery.replaceAll("[-+.^:,(){}0-9]","");
+                    searchQuery = searchQuery.replaceAll("[-+.^:,(){}0-9]", "");
                     List<MediaItem> list = mMusicProvider.getSearchList(searchQuery);
                     if (list != null) {
                         result.sendResult(list);
@@ -460,7 +483,6 @@ public class MusicService extends MediaBrowserServiceCompat implements
                     mMusicProvider.retrieveMediaAsync(RetrieveType.VIDEOID, musicId, new MusicProvider.Callback() {
                         @Override
                         public void onMusicCatalogReady(boolean success) {
-                            mPlaybackManager.updatePlayBackQueue(parentMediaId);
                             List<MediaItem> items = mMusicProvider.getVideosIDList(musicId);
                             if (items == null || items.isEmpty()) {
                                 items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_DOWNLOAD, getResources());
@@ -469,25 +491,21 @@ public class MusicService extends MediaBrowserServiceCompat implements
                         }
                     });
                 } else {
-                    mPlaybackManager.updatePlayBackQueue(parentMediaId);
                     result.sendResult(list);
                 }
-            }
-            else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType)) {
                 List<MediaItem> items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_FAVOURITE, getResources());
-                mPlaybackManager.updatePlayBackQueue(parentMediaId);
                 result.sendResult(items);
 
-            }  else if (categoryType != null && MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID.equalsIgnoreCase(categoryType)) {
                 List<MediaItem> items = mMusicProvider.getChildren(MEDIA_ID_MUSICS_BY_LOCAL, getResources());
-                mPlaybackManager.updatePlayBackQueue(parentMediaId);
                 result.sendResult(items);
 
-            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_DOWNLOAD.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
             } else if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
-            }else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY.equalsIgnoreCase(categoryType)) {
+            } else if (categoryType != null && MEDIA_ID_MUSICS_BY_HISTORY.equalsIgnoreCase(categoryType)) {
                 result.sendResult(mMusicProvider.getChildren(parentMediaId, getResources()));
             } else if (mMusicProvider.isInitialized()) {
                 // if music library is ready, return immediately
@@ -508,6 +526,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
                             .getDescription(Thread.currentThread().getName(), e))
                     .setFatal(false)
                     .build());
+            e.printStackTrace();
             result.sendResult(null);
         }
     }
@@ -538,27 +557,31 @@ public class MusicService extends MediaBrowserServiceCompat implements
             }
         }
         if (categoryType != null && MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID.equalsIgnoreCase(categoryType) && !MediaIDHelper.isBrowseable(mediaId)) {
-            String tmp=MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId);
-            if(tmp != null && (tmp.equalsIgnoreCase("true") || tmp.equalsIgnoreCase("false"))  ) {
+            String tmp = MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId);
+            if (tmp != null && (tmp.equalsIgnoreCase("true") || tmp.equalsIgnoreCase("false"))) {
                 Boolean isFavourite = Boolean.parseBoolean(tmp);
                 mMusicProvider.setFavorite(musicId, mMusicProvider.getMusic(musicId), isFavourite);
                 result.sendResult(mMusicProvider.getMediaItemMusic(musicId));
             }
             return;
         }
-        if((categoryType != null && MEDIA_ID_ADD_TO_QUEUE.equalsIgnoreCase(categoryType))){
-            String currentMusicId=mPlaybackManager.getTopItemOfQueue();
-            if(currentMusicId == null){
+        if ((categoryType != null && MEDIA_ID_ADD_TO_QUEUE.equalsIgnoreCase(categoryType))) {
+            String topItemOfQueue = mPlaybackManager.getTopItemOfQueue();
+            String currentMusicId = mPlaybackManager.getCurrentPlayMusicId();
+            if (currentMusicId == null || topItemOfQueue == null) {
                 result.detach();
                 return;
             }
-            mMusicProvider.addMusicVideosIdList(MediaIDHelper.extractMusicIDFromMediaID(currentMusicId),musicId);
+            mMusicProvider.addMusicToCurrentList(MediaIDHelper.extractMusicIDFromMediaID(topItemOfQueue), MediaIDHelper.extractMusicIDFromMediaID(currentMusicId), musicId);
+            result.sendResult(mMusicProvider.getMediaItemMusic(MediaIDHelper.extractMusicIDFromMediaID(currentMusicId)));
             mPlaybackManager.updatePlayBackQueue();
+            return;
         }
+        //mPlaybackManager.updatePlayBackQueue();
         result.detach();
     }
 
-    private boolean addItemToExistingPlayList(String mediaId){
+    private boolean addItemToExistingPlayList(String mediaId) {
 
         return true;
     }

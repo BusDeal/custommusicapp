@@ -24,7 +24,7 @@ android {
         config {
             keyAlias 'myfirstappkey'
             keyPassword 'babu512'
-            storeFile file('/home/sagar/Documents/freemp3.jks')
+            storeFile file('/Users/vidyasagar.kota/Downloads/freemp3.jks')
             storePassword 'babu512'
         }
     }
@@ -84,6 +84,8 @@ dependencies {
     compile 'com.google.firebase:firebase-messaging:10.2.0'
     compile 'com.google.firebase:firebase-crash:10.2.0'
     compile 'com.orhanobut:dialogplus:1.11@aar'
+    compile 'com.ogaclejapan.smarttablayout:library:1.6.1@aar'
+    compile 'com.ogaclejapan.smarttablayout:utils-v4:1.6.1@aar'
     testCompile 'junit:junit:4.12'
     testCompile 'org.mockito:mockito-core:1.10.19'
     androidTestCompile 'junit:junit:4.12'

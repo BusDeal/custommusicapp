@@ -79,9 +79,9 @@ public class MusicProvider {
     private Map<String, MediaMetadataCompat> mFavoriteTracks;
     private Map<String, MediaMetadataCompat> mHistoryTracks;
     private Map<String, MediaMetadataCompat> mLocalTracks;
-    private  List<>
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListBySearch;
     //private final LinkedHashMap<String, MutableMediaMetadata> mMusicListByVideoId;
+    private LruCache<String, Map<String, MutableMediaMetadata>> mcurrentPlayList = new LruCache<>(10);
     private LruCache<String, Map<String, MutableMediaMetadata>> mMusicListBySearch = new LruCache<>(10);
     private LruCache<String, Map<String, MutableMediaMetadata>> mMusicListByVideoId = new LruCache<>(100);
     private Context context;
@@ -114,10 +114,10 @@ public class MusicProvider {
         mSource = source;
         mMusicListByGenre = new ConcurrentHashMap<>();
         mMusicListById = new LinkedHashMap<>();
-        downloadMusicList = DownLoadManager.getDownloadedMedia(context,this);
+        downloadMusicList = DownLoadManager.getDownloadedMedia(context, this);
         mFavoriteTracks = FavouriteManager.loadFavourites(context);
         mHistoryTracks = HistoryManager.loadHistories(context);
-        mLocalTracks= new LinkedHashMap<>();
+        mLocalTracks = new LinkedHashMap<>();
     }
 
     /**
@@ -162,7 +162,7 @@ public class MusicProvider {
     }
 
     private Iterable<MediaMetadataCompat> getDownloadedMusic() {
-        downloadMusicList = DownLoadManager.getDownloadedMedia(context,this);
+        downloadMusicList = DownLoadManager.getDownloadedMedia(context, this);
         List<MediaMetadataCompat> shuffled = new ArrayList<>(downloadMusicList.size());
         for (MutableMediaMetadata mutableMetadata : downloadMusicList.values()) {
             shuffled.add(mutableMetadata.metadata);
@@ -228,15 +228,15 @@ public class MusicProvider {
         }
         List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(downloadMusicList.size());
         List<MediaMetadataCompat> beforeList = new ArrayList<>(downloadMusicList.size());
-        int flag=0;
+        int flag = 0;
         for (MutableMediaMetadata mutableMetadata : downloadMusicList.values()) {
             if (mutableMetadata.trackId.equalsIgnoreCase(videoId)) {
-                flag=1;
+                flag = 1;
                 continue;
             }
-            if(flag == 0){
+            if (flag == 0) {
                 beforeList.add(mutableMetadata.metadata);
-            }else{
+            } else {
                 mutableMediaMetadataList.add(mutableMetadata.metadata);
             }
         }
@@ -273,15 +273,15 @@ public class MusicProvider {
     public Iterable<MediaMetadataCompat> getLocalMusicTracks(String videoId) {
         List<MediaMetadataCompat> mutableMediaMetadataList = new ArrayList<>(mLocalTracks.size());
         List<MediaMetadataCompat> beforeList = new ArrayList<>(downloadMusicList.size());
-        int flag=0;
+        int flag = 0;
         for (MediaMetadataCompat mediaMetadataCompat : mLocalTracks.values()) {
             if (mediaMetadataCompat.getDescription().getMediaId().equalsIgnoreCase(videoId)) {
-                flag=1;
+                flag = 1;
                 continue;
             }
-            if(flag == 0){
+            if (flag == 0) {
                 beforeList.add(mediaMetadataCompat);
-            }else{
+            } else {
                 mutableMediaMetadataList.add(mediaMetadataCompat);
             }
         }
@@ -296,6 +296,18 @@ public class MusicProvider {
         }
         if (mCurrentState != State.INITIALIZED) {
             return Collections.emptyList();
+        }
+        List<MediaMetadataCompat> shuffled = new ArrayList<>(data.size());
+        for (MutableMediaMetadata mutableMetadata : data.values()) {
+            shuffled.add(mutableMetadata.metadata);
+        }
+        return shuffled;
+    }
+
+    public Iterable<MediaMetadataCompat> getPlayList(String videoId) {
+        Map<String, MutableMediaMetadata> data = mcurrentPlayList.get(videoId);
+        if (data == null) {
+            return null;
         }
         List<MediaMetadataCompat> shuffled = new ArrayList<>(data.size());
         for (MutableMediaMetadata mutableMetadata : data.values()) {
@@ -324,7 +336,7 @@ public class MusicProvider {
 
     private MutableMediaMetadata findMediaFromFavouritesList(String videoId) {
         MediaMetadataCompat mediaMetadataCompat = mFavoriteTracks.get(videoId);
-        if(mediaMetadataCompat == null){
+        if (mediaMetadataCompat == null) {
             return null;
         }
         MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
@@ -333,7 +345,7 @@ public class MusicProvider {
 
     private MutableMediaMetadata findMediaFromHistoryList(String videoId) {
         MediaMetadataCompat mediaMetadataCompat = mHistoryTracks.get(videoId);
-        if(mediaMetadataCompat == null){
+        if (mediaMetadataCompat == null) {
             return null;
         }
         MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
@@ -341,9 +353,9 @@ public class MusicProvider {
     }
 
     private MutableMediaMetadata findMediaFromLocalTrackList(String videoId) {
-        mLocalTracks=LocalMediaManager.getLocalMedia(context);
+        mLocalTracks = LocalMediaManager.getLocalMedia(context);
         MediaMetadataCompat mediaMetadataCompat = mLocalTracks.get(videoId);
-        if(mediaMetadataCompat == null){
+        if (mediaMetadataCompat == null) {
             return null;
         }
         MutableMediaMetadata mutableMediaMetadata = new MutableMediaMetadata(videoId, mediaMetadataCompat);
@@ -438,11 +450,12 @@ public class MusicProvider {
             mutableMediaMetadata = findMediaFromFavouritesList(musicId);
         }
         if (mutableMediaMetadata == null) {
-            mutableMediaMetadata = findMediaFromLocalTrackList(musicId);
-        }
-        if (mutableMediaMetadata == null) {
             mutableMediaMetadata = findMediaFromHistoryList(musicId);
         }
+        if (mutableMediaMetadata == null) {
+            mutableMediaMetadata = findMediaFromLocalTrackList(musicId);
+        }
+
         return mutableMediaMetadata;
     }
 
@@ -513,7 +526,7 @@ public class MusicProvider {
 
     public void setHistoryTrack(String musicId, MediaMetadataCompat mediaMetadataCompat) {
         mHistoryTracks = HistoryManager.getHistory();
-        if (mediaMetadataCompat != null ) {
+        if (mediaMetadataCompat != null) {
             HistoryManager.addHistoryItem(musicId, mediaMetadataCompat);
             HistoryManager.saveHistory(context);
         }
@@ -530,6 +543,7 @@ public class MusicProvider {
     public boolean isHistory(String musicId) {
         return mHistoryTracks.containsKey(musicId);
     }
+
     /**
      * Get the list of music tracks from a server and caches the track information
      * for future reference, keying tracks by musicId and grouping by genre.
@@ -587,6 +601,9 @@ public class MusicProvider {
             mCurrentState = State.INITIALIZING;
             Iterator<MediaMetadataCompat> tracks = mSource.iterator(retrieveType, params);
 
+            if (retrieveType == RetrieveType.PLAY) {
+                map.put(params[0], getMutableMusic(params[0]));
+            }
             while (tracks.hasNext()) {
                 MediaMetadataCompat item = tracks.next();
                 String musicId = item.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID);
@@ -608,17 +625,26 @@ public class MusicProvider {
             if (retrieveType == RetrieveType.SEARCH) {
                 mMusicListBySearch.put(params[0], map);
             }
+            if (retrieveType == RetrieveType.PLAY) {
+                if(map.isEmpty()){
+                    LogHelper.e(TAG,"Why the hell is this is empty");
+                }
+                mcurrentPlayList.put(params[0], map);
+            }
             if (retrieveType == RetrieveType.VIDEOID) {
                 mMusicListByVideoId.put(params[0], map);
             }
-            buildListsByGenre();
+            //buildListsByGenre();
             mCurrentState = State.INITIALIZED;
 
             if (map.isEmpty()) {
                 mCurrentState = State.NON_INITIALIZED;
             }
 
-        } finally {
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        finally {
             if (mCurrentState != State.INITIALIZED) {
                 // Something bad happened, so we reset state to NON_INITIALIZED to allow
                 // retries (eg if the network connection is temporary unavailable)
@@ -665,8 +691,7 @@ public class MusicProvider {
             for (MediaMetadataCompat metadata : getLocalTrackMusic()) {
                 mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID, metadata));
             }
-        }
-        else if (MEDIA_ID_MUSICS_BY_GENRE.equals(mediaId)) {
+        } else if (MEDIA_ID_MUSICS_BY_GENRE.equals(mediaId)) {
             for (String genre : getGenres()) {
                 mediaItems.add(createBrowsableMediaItemForGenre(genre, resources));
             }
@@ -695,6 +720,18 @@ public class MusicProvider {
         return mediaItems;
     }
 
+    public List<MediaBrowserCompat.MediaItem> getCurrentPlayList(String musicId) {
+        Iterable<MediaMetadataCompat> iterable = getPlayList(musicId);
+        if (iterable == null) {
+            return null;
+        }
+        List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
+        for (MediaMetadataCompat metadata : getPlayList(musicId)) {
+            mediaItems.add(createMediaItem(MEDIA_ID_MUSICS_BY_VIDEOID, metadata));
+        }
+        return mediaItems;
+    }
+
     public List<MediaBrowserCompat.MediaItem> getVideosIDList(String musicId) {
         List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
         Iterable<MediaMetadataCompat> iterable = getYoutubeIdBasedMusic(musicId);
@@ -708,21 +745,43 @@ public class MusicProvider {
     }
 
     public void addMusicVideosIdList(String currentId, String musicId) {
-        if(currentId == null || musicId ==null){
+        if (currentId == null || musicId == null) {
             return;
         }
         MutableMediaMetadata mutableMediaMetadata = getMutableMusic(musicId);
         Map<String, MutableMediaMetadata> items = mMusicListByVideoId.get(currentId);
-        if(items == null){
+        if (items == null) {
             return;
         }
-        LinkedHashMap<String, MutableMediaMetadata> newmap=new LinkedHashMap<>();
+        LinkedHashMap<String, MutableMediaMetadata> newmap = new LinkedHashMap<>();
         newmap.putAll(items);
         items.clear();
         items.put(musicId, mutableMediaMetadata);
         items.putAll(newmap);
         newmap.clear();
     }
+
+    public void addMusicToCurrentList(String topItem, String currentId , String musicId) {
+        if (topItem == null || musicId == null) {
+            return;
+        }
+        MutableMediaMetadata mutableMediaMetadata = getMutableMusic(musicId);
+        Map<String, MutableMediaMetadata> items = mcurrentPlayList.get(topItem);
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        LinkedHashMap<String, MutableMediaMetadata> newmap = new LinkedHashMap<>();
+        for(String id:items.keySet()){
+            if(currentId.equalsIgnoreCase(id)){
+                newmap.put(id,items.get(id));
+                newmap.put(musicId, mutableMediaMetadata);
+            }else{
+                newmap.put(id,items.get(id));
+            }
+        }
+        mcurrentPlayList.put(topItem,newmap);
+    }
+
 
     private MediaBrowserCompat.MediaItem createBrowsableMediaItemForRoot(Resources resources) {
         MediaDescriptionCompat description = new MediaDescriptionCompat.Builder()
@@ -776,7 +835,7 @@ public class MusicProvider {
         bob.setIconBitmap(copy.getDescription().getIconBitmap());
         bob.setIconUri(copy.getDescription().getIconUri());
         Bundle bundle = new Bundle();
-        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DATE,new Date().getTime());
+        bundle.putLong(MediaMetadataCompat.METADATA_KEY_DATE, new Date().getTime());
         bundle.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
         bundle.putString(Constants.CUSTOM_METADATA_DOWNLOADED, metadata.getString(Constants.CUSTOM_METADATA_DOWNLOADED));
         bundle.putString(Constants.CUSTOM_METADATA_TRACK_SOURCE, metadata.getString(Constants.CUSTOM_METADATA_TRACK_SOURCE));

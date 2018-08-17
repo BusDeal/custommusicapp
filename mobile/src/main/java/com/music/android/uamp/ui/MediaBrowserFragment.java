@@ -17,7 +17,6 @@ package com.music.android.uamp.ui;
 
 import android.app.Activity;
 import android.app.DownloadManager;
-import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,6 +28,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -435,9 +435,9 @@ public class MediaBrowserFragment extends Fragment {
         MediaBrowserCompat mediaBrowser = mMediaFragmentListener.getMediaBrowser();
 
         LogHelper.d(TAG, "fragment.onStart, mediaId=", mMediaId,
-                "  onConnected=" + mediaBrowser.isConnected());
+                 "  onConnected=" + mediaBrowser);
 
-        if (mediaBrowser.isConnected()) {
+        if (mediaBrowser != null && mediaBrowser.isConnected()) {
             onConnected();
         }
 
@@ -484,6 +484,10 @@ public class MediaBrowserFragment extends Fragment {
         setArguments(args);
     }
 
+    public void setByMediaId(String mediaId) {
+        mMediaId=mediaId;
+    }
+
     // Called when the MediaBrowser is connected. This method is either called by the
     // fragment.onStart() or explicitly by the activity in the case where the connection
     // completes after the onStart()
@@ -491,7 +495,9 @@ public class MediaBrowserFragment extends Fragment {
         if (isDetached()) {
             return;
         }
-        mMediaId = getMediaId();
+        if(mMediaId == null) {
+            mMediaId = getMediaId();
+        }
         if (mMediaId == null) {
             mMediaId = mMediaFragmentListener.getMediaBrowser().getRoot();
         }

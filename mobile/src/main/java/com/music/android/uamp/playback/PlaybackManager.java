@@ -1,18 +1,18 @@
 /*
-* Copyright (C) 2014 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (C) 2014 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.music.android.uamp.playback;
 
@@ -110,7 +110,7 @@ public class PlaybackManager implements Playback.Callback {
 
         //noinspection ResourceType
         String source = track.getString(Constants.CUSTOM_METADATA_TRACK_SOURCE);
-        if(source != null){
+        if (source != null) {
             return;
         }
         new AsyncTask<String, Void, AudioMetaData>() {
@@ -119,7 +119,7 @@ public class PlaybackManager implements Playback.Callback {
 
                 try {
                     Thread.sleep(5000); // sleep for 2 minutes
-                    if(mPlayback.getState() == PlaybackStateCompat.STATE_ERROR){
+                    if (mPlayback.getState() == PlaybackStateCompat.STATE_ERROR) {
                         return null;
                     }
                     MediaSessionCompat.QueueItem item = mQueueManager.getNextItem();
@@ -129,7 +129,7 @@ public class PlaybackManager implements Playback.Callback {
                     return mMusicProvider.getSourceUrl(MediaIDHelper.extractMusicIDFromMediaID(item.getDescription().getMediaId()));
                 } catch (InterruptedException e) {
                     return null;
-                }catch (Exception e) {
+                } catch (Exception e) {
                     LogHelper.e("Unable to get next audio url");
                     return null;
                 }
@@ -161,12 +161,12 @@ public class PlaybackManager implements Playback.Callback {
             protected void onPostExecute(AudioMetaData source) {
                 if (source != null) {
 
-                    MediaSessionCompat.QueueItem latestCurrentMusic=mQueueManager.getCurrentMusic();
-                    if(latestCurrentMusic != currentMusic){
+                    MediaSessionCompat.QueueItem latestCurrentMusic = mQueueManager.getCurrentMusic();
+                    if (latestCurrentMusic != currentMusic) {
                         LogHelper.e(TAG, "currentMusic is different from the new current music");
                         return;
                     }
-                    if(mPlayback.getState() == PlaybackStateCompat.STATE_ERROR){
+                    if (mPlayback.getState() == PlaybackStateCompat.STATE_ERROR) {
                         LogHelper.e(TAG, "music service is down is return");
                         return;
                     }
@@ -327,14 +327,14 @@ public class PlaybackManager implements Playback.Callback {
 
     @Override
     public void onPlaybackStatusChanged(int state) {
-        if(PlaybackStateCompat.STATE_PLAYING == state){
+        if (PlaybackStateCompat.STATE_PLAYING == state) {
             getNextQueueItemAudioUrlAndUpdate();
         }
         updatePlaybackState(null);
     }
 
     @Override
-    public void onMetaDataChanged(){
+    public void onMetaDataChanged() {
         mQueueManager.updateMetadata();
     }
 
@@ -393,9 +393,6 @@ public class PlaybackManager implements Playback.Callback {
         }
     }
 
-    public void updatePlayBackQueue(String mediaId) {
-        mQueueManager.updateQueue(mediaId);
-    }
 
     public void updatePlayBackQueue() {
         mQueueManager.updateQueueItem();
@@ -403,6 +400,15 @@ public class PlaybackManager implements Playback.Callback {
 
     public String getTopItemOfQueue() {
         return mQueueManager.getTopElemnetOfQueue();
+    }
+
+    public String getCurrentPlayMusicId(){
+        MediaSessionCompat.QueueItem queueItem=mQueueManager.getCurrentMusic();
+        if(queueItem != null){
+            return mQueueManager.getCurrentMusic().getDescription().getMediaId();
+        }else {
+            return null;
+        }
     }
 
 
@@ -486,9 +492,10 @@ public class PlaybackManager implements Playback.Callback {
                 updatePlaybackState(null);
             } else if (CUSTOM_ACTION_ADD_TO_QUEUE.equals(action)) {
                 String mediaId = extras.getString("mediaId");
-                mQueueManager.updateQueueItem(mediaId);
+                mQueueManager.updateQueueItem();
                 MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
-                mMusicProvider.addMusicVideosIdList(MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+                String topItem = mQueueManager.getTopElemnetOfQueue();
+                mMusicProvider.addMusicToCurrentList(MediaIDHelper.extractMusicIDFromMediaID(topItem),MediaIDHelper.extractMusicIDFromMediaID(currentMusic.getDescription().getMediaId()), MediaIDHelper.extractMusicIDFromMediaID(mediaId));
             } else {
                 LogHelper.e(TAG, "Unsupported action: ", action);
             }

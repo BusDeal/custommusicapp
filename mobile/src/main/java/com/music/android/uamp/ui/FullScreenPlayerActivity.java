@@ -31,6 +31,7 @@ import android.os.Handler;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
@@ -38,6 +39,7 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -66,6 +68,10 @@ import com.music.android.uamp.utils.FetchImageAsync;
 import com.music.android.uamp.utils.LogHelper;
 import com.music.android.uamp.utils.MediaIDHelper;
 import com.music.android.uamp.utils.NetworkHelper;
+import com.ogaclejapan.smarttablayout.SmartTabLayout;
+import com.ogaclejapan.smarttablayout.utils.v4.Bundler;
+import com.ogaclejapan.smarttablayout.utils.v4.FragmentPagerItemAdapter;
+import com.ogaclejapan.smarttablayout.utils.v4.FragmentPagerItems;
 import com.pnikosis.materialishprogress.ProgressWheel;
 
 import java.io.File;
@@ -135,6 +141,8 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
             if (metadata != null) {
+                ((MediaBrowserFragment) suggestionsList).setByMediaId(metadata.getDescription().getMediaId());
+                ((MediaBrowserFragment) suggestionsList).onConnected();
                 updateMediaDescription(metadata.getDescription());
                 updateDuration(metadata);
                 String durationStr = metadata.getString(Constants.CUSTOM_METADATA_TRACKS_DURATIONS);
@@ -161,7 +169,13 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     LogHelper.d(TAG, "onConnected");
                     try {
                         connectToSession(mMediaBrowser.getSessionToken());
-                        getBrowseFragment().onConnected();
+                        //getBrowseFragment().onConnected();
+                        if (playList != null && playList instanceof MediaBrowserFragment) {
+                            ((MediaBrowserFragment) playList).onConnected();
+                        }
+                        if (suggestionsList != null && suggestionsList instanceof MediaBrowserFragment) {
+                            ((MediaBrowserFragment) suggestionsList).onConnected();
+                        }
                     } catch (RemoteException e) {
                         LogHelper.e(TAG, e, "could not connect media controller");
                     }
@@ -172,12 +186,47 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     private FirebaseAnalytics mFirebaseAnalytics;
     private ProgressWheel mProgressWeel;
     private long fastForwardData;
+    private Fragment currentFragment;
+    private Fragment playList;
+    private Fragment suggestionsList;
 
     private void navigateToBrowser(String mediaId) {
-        LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
-        MediaBrowserFragment fragment = getBrowseFragment();
 
-        if (fragment == null || !TextUtils.equals(fragment.getMediaId(), mediaId)) {
+        String playMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MediaIDHelper.MEDIA_ID_MUSICS_BY_PLAY, MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId));
+        FragmentPagerItems fragmentPagerItems = FragmentPagerItems.with(this)
+                .add(R.string.playlist, MediaBrowserFragment.class, new Bundler().putString("media_id", playMediaId).get())
+                .add(R.string.suggestions, MediaBrowserFragment.class, new Bundler().putString("media_id", mediaId).get())
+                .create();
+        final FragmentPagerItemAdapter adapter = new FragmentPagerItemAdapter(
+                getSupportFragmentManager(),
+                fragmentPagerItems);
+        ViewPager viewPager = (ViewPager) findViewById(R.id.viewpager);
+        viewPager.setAdapter(adapter);
+
+        SmartTabLayout viewPagerTab = (SmartTabLayout) findViewById(R.id.smartTab);
+        viewPagerTab.setViewPager(viewPager);
+        viewPagerTab.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                currentFragment = adapter.getPage(position);
+                playList = adapter.getPage(0);
+                suggestionsList = adapter.getPage(1);
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                currentFragment = adapter.getPage(position);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+        });
+        LogHelper.d(TAG, "navigateToBrowser, mediaId=" + mediaId);
+        //MediaBrowserFragment fragment = getBrowseFragment();
+
+        /*if (fragment == null || !TextUtils.equals(fragment.getMediaId(), mediaId)) {
             fragment = new MediaBrowserFragment();
             fragment.setMediaId(mediaId);
             FragmentTransaction transaction = getFragmentManager().beginTransaction();
@@ -187,15 +236,15 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             transaction.replace(R.id.playlist, fragment, FRAGMENT_TAG);
             // If this is not the top level media (root), we add it to the fragment back stack,
             // so that actionbar toggle and Back will work appropriately:
-            /*if (mediaId != null) {
+            *//*if (mediaId != null) {
                 transaction.addToBackStack(null);
-            }*/
+            }*//*
             transaction.commit();
-        }
+        }*/
     }
 
     private MediaBrowserFragment getBrowseFragment() {
-        return (MediaBrowserFragment) getFragmentManager().findFragmentByTag(FRAGMENT_TAG);
+        return (MediaBrowserFragment) currentFragment;
     }
 
     @Override
@@ -559,7 +608,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
         LogHelper.d(TAG, "updateMediaDescription called ");
         mLine1.setText(description.getTitle());
         mLine2.setText(description.getSubtitle());
-        FetchImageAsync.fetchImageAsync(mBackgroundImage,mBackgroundImage,description, FetchImageAsync.ImageSize.BigImage);
+        FetchImageAsync.fetchImageAsync(mBackgroundImage, mBackgroundImage, description, FetchImageAsync.ImageSize.BigImage);
     }
 
     private void updateDuration(MediaMetadataCompat metadata) {
@@ -599,7 +648,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                 mControllers.setVisibility(VISIBLE);
                 //mFastFoward.setVisibility(View.VISIBLE);
                 //mRewind.setVisibility(View.VISIBLE);
-                if (durations.size() >  2) {
+                if (durations.size() > 2) {
                     mFastFoward.setVisibility(View.VISIBLE);
                     mRewind.setVisibility(View.VISIBLE);
                 }
@@ -670,7 +719,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
     @Override
     public void onMediaItemSelected(MediaBrowserCompat.MediaItem item, Type type) {
 
-        if(type == Type.PLAY) {
+        if (type == Type.PLAY) {
             Intent intent = getIntent();
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
@@ -698,30 +747,30 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                     .prepareFromMediaId(item.getMediaId(), null);
             finish();
             startActivity(intent);
-        }else if (item.isBrowsable() | type == Type.BROWSE) {
-                mTracker.send(new HitBuilders.EventBuilder()
-                        .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
-                        .setAction("browse")
-                        .setLabel(item.getMediaId())
-                        .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
-                        .build());
-                Bundle bundle = new Bundle();
-                bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
-                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
-                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "browse");
-                bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
-                bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
-                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM_LIST, bundle);
-                navigateToBrowser(item.getMediaId());
-                Intent intent = new Intent(FullScreenPlayerActivity.this,MusicPlayerActivity.class);
-                intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
-                        item.getDescription());
-                intent.putExtra("mediaId", item.getDescription().getMediaId());
-                intent.putExtra("com.music.android.uamp.MEDIA_ID", item.getDescription().getMediaId());
+        } else if (item.isBrowsable() | type == Type.BROWSE) {
+            mTracker.send(new HitBuilders.EventBuilder()
+                    .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
+                    .setAction("browse")
+                    .setLabel(item.getMediaId())
+                    .set(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()), item.getMediaId())
+                    .build());
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "browse");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
+            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM_LIST, bundle);
+            navigateToBrowser(item.getMediaId());
+            Intent intent = new Intent(FullScreenPlayerActivity.this, MusicPlayerActivity.class);
+            intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                    item.getDescription());
+            intent.putExtra("mediaId", item.getDescription().getMediaId());
+            intent.putExtra("com.music.android.uamp.MEDIA_ID", item.getDescription().getMediaId());
 
             finish();
             startActivity(intent);
-        } else if(type == Type.ADDTOQUEUE) {
+        } else if (type == Type.ADDTOQUEUE) {
             mTracker.send(new HitBuilders.EventBuilder()
                     .setCategory(MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()))
                     .setAction("browse")
@@ -732,7 +781,7 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
             bundle.putString(FirebaseAnalytics.Param.ITEM_ID, item.getMediaId());
             bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "queue");
-            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY,MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
+            bundle.putString(FirebaseAnalytics.Param.ITEM_CATEGORY, MediaIDHelper.extractBrowseCategoryTypeFromMediaID(item.getMediaId()));
             bundle.putString(FirebaseAnalytics.Param.CONTENT, item.getMediaId());
             String addToQueue = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(item.getMediaId()), MEDIA_ID_ADD_TO_QUEUE, "add");
             getMediaBrowser().getItem(addToQueue, new MediaBrowserCompat.ItemCallback() {
@@ -742,7 +791,11 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity implements M
                  * @param item The item that was returned or null if it doesn't exist.
                  */
                 @Override
-                public void onItemLoaded(MediaBrowserCompat.MediaItem item){
+                public void onItemLoaded(MediaBrowserCompat.MediaItem item) {
+                    String mediaId = item.getDescription().getMediaId();
+                    String playMediaId = MediaIDHelper.createMediaID(MediaIDHelper.extractMusicIDFromMediaID(mediaId), MediaIDHelper.MEDIA_ID_MUSICS_BY_PLAY, MediaIDHelper.extractBrowseCategoryValueFromMediaID(mediaId));
+                    ((MediaBrowserFragment) playList).setByMediaId(playMediaId);
+                    ((MediaBrowserFragment) playList).onConnected();
                 }
 
                 /**

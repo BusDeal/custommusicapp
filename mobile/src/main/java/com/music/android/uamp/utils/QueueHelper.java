@@ -22,9 +22,11 @@ import android.support.v4.media.session.MediaSessionCompat;
 
 import com.music.android.uamp.VoiceSearchParams;
 import com.music.android.uamp.model.MusicProvider;
+import com.music.android.uamp.model.MutableMediaMetadata;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID;
 import static com.music.android.uamp.utils.MediaIDHelper.MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID;
@@ -61,16 +63,16 @@ public class QueueHelper {
 
         List<MediaMetadataCompat> current = new ArrayList<>();
         MediaMetadataCompat mediaMetadataCompat = musicProvider.getMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        if(mediaMetadataCompat == null){
+        if (mediaMetadataCompat == null) {
             return new ArrayList<MediaSessionCompat.QueueItem>();
         }
         current.add(mediaMetadataCompat);
 
-        return convertToQueue(current, hierarchy[0],hierarchy[1]);
+        return convertToQueue(current, hierarchy[0], hierarchy[1]);
     }
 
     public static List<MediaSessionCompat.QueueItem> getAdditionalPlayingTracks(String mediaId,
-                                                                               MusicProvider musicProvider) {
+                                                                                MusicProvider musicProvider) {
 
         String[] hierarchy = MediaIDHelper.getHierarchy(mediaId);
 
@@ -84,6 +86,8 @@ public class QueueHelper {
         LogHelper.d(TAG, "Creating playing queue for ", categoryType, ",  ", categoryValue);
 
         Iterable<MediaMetadataCompat> tracks = null;
+
+
         // This sample only supports genre and by_search category types.
         if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL)) {
             tracks = musicProvider.getMusicsByGenre(categoryValue);
@@ -92,14 +96,11 @@ public class QueueHelper {
             tracks = musicProvider.getYoutubeIdBasedMusic(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         } else if (categoryType.equals(MEDIA_ID_MUSICS_BY_DOWNLOAD_VIDEOID)) {
             tracks = musicProvider.getDownLoadMusicList(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        }
-        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID)) {
+        } else if (categoryType.equals(MEDIA_ID_MUSICS_BY_FAVOURITE_VIDEOID)) {
             tracks = musicProvider.getFavouriteMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        }
-        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
+        } else if (categoryType.equals(MEDIA_ID_MUSICS_BY_HISTORY_VIDEOID)) {
             tracks = musicProvider.getHistoryMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
-        }
-        else if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID)) {
+        } else if (categoryType.equals(MEDIA_ID_MUSICS_BY_LOCAL_VIDEOID)) {
             tracks = musicProvider.getLocalMusicTracks(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
         }
         if (tracks == null) {
@@ -109,8 +110,14 @@ public class QueueHelper {
             tracks = current;
         }
 
-        return convertToQueue(tracks, hierarchy[0],hierarchy[1]);
-
+        Iterable<MediaMetadataCompat> myQueueItems = musicProvider.getPlayList(MediaIDHelper.extractMusicIDFromMediaID(mediaId));
+        List<MediaSessionCompat.QueueItem> queueItems = new ArrayList<>();
+        if (myQueueItems != null) {
+            queueItems = convertToQueue(myQueueItems, hierarchy[0], hierarchy[1]);
+        }else {
+            queueItems= convertToQueue(tracks, hierarchy[0], hierarchy[1]);
+        }
+        return queueItems;
     }
 
     public static List<MediaSessionCompat.QueueItem> getPlayingQueueFromSearch(String query,
@@ -185,7 +192,7 @@ public class QueueHelper {
         int count = 0;
         for (MediaMetadataCompat track : tracks) {
 
-            String genre=track.getDescription().getTitle().toString();
+            String genre = track.getDescription().getTitle().toString();
             if (genre == null) {
                 genre = "null";
             }
@@ -198,7 +205,7 @@ public class QueueHelper {
             // We create a hierarchy-aware mediaID, so we know what the queue is about by looking
             // at the QueueItem media IDs.
             String hierarchyAwareMediaID = MediaIDHelper.createMediaID(
-                    track.getDescription().getMediaId(),MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID,genre);
+                    track.getDescription().getMediaId(), MediaIDHelper.MEDIA_ID_MUSICS_BY_VIDEOID, genre);
 
             MediaMetadataCompat trackCopy = new MediaMetadataCompat.Builder(track)
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, hierarchyAwareMediaID)

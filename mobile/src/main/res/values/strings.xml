@@ -71,4 +71,6 @@
     <string name="add_favorite">Add Favourite</string>
     <string name="remove_favorite">Remove Favorite</string>
     <string name="delete_item">Delete</string>
+    <string name="playlist">Play List</string>
+    <string name="suggestions">Suggestions</string>
 </resources>

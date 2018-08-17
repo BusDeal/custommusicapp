@@ -255,6 +255,9 @@ public class LocalMediaManager {
 
         // get all the files from a directory
         File[] fList = directory.listFiles();
+        if(fList == null || fList.length == 0){
+            return;
+        }
         for (File file : fList) {
             if (file.isFile()) {
                 String extension = "";
